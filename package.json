@@ -1,0 +1,17 @@
+{
+  "name": "@liquid-labs/liq-work",
+  "version": "1.0.0-alpha.0",
+  "description": "",
+  "main": "dist/liq-work.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Zane Rockenbaugh <zane@liquid-labs.com>",
+  "license": "UNLICENSED",
+  "repository": "git+ssh://git@github.com/liquid-labs/liq-work.git",
+  "bugs": {
+    "url": "https://github.com/liquid-labs/liq-work/issues"
+  },
+  "homepage": "https://github.com/liquid-labs/liq-work#readme"
+}
