@@ -13,5 +13,22 @@
   "bugs": {
     "url": "https://github.com/liquid-labs/liq-work/issues"
   },
-  "homepage": "https://github.com/liquid-labs/liq-work#readme"
+  "homepage": "https://github.com/liquid-labs/liq-work#readme",
+  "dependencies": {
+    "@liquid-labs/federated-json": "^1.0.0-alpha.33",
+    "@liquid-labs/git-toolkit": "^1.0.0-alpha.5",
+    "@liquid-labs/github-toolkit": "^1.0.0-alpha.4",
+    "@liquid-labs/http-smart-response": "^1.0.0-alpha.3",
+    "@liquid-labs/liq-credentials-db": "^1.0.0-alpha.2",
+    "@liquid-labs/shell-toolkit": "^1.0.0-alpha.2",
+    "core-js-pure": "^3.28.0",
+    "octokit": "^2.0.14"
+  },
+  "devDependencies": {
+    "@liquid-labs/catalyst-scripts": "^1.0.0-alpha.57"
+  },
+  "liq": {
+    "packageType": "node|lib",
+    "tags": []
+  }
 }
