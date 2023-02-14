@@ -49,7 +49,6 @@ const WorkDB = class WorkDB {
     const projectsData = []
     for (const project of projects) {
       const projectData = await octokit.request(`GET /repos/${project}`)
-      console.log(projectData)
       projectsData.push({
         name: project,
         private: projectData.private
