@@ -1,5 +1,5 @@
 import * as startHandler from './start'
 
-const handlers = [ startHandler ]
+const handlers = [startHandler]
 
 export { handlers }
