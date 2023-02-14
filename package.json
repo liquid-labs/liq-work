@@ -20,6 +20,7 @@
     "@liquid-labs/github-toolkit": "file:.yalc/@liquid-labs/github-toolkit",
     "@liquid-labs/http-smart-response": "^1.0.0-alpha.3",
     "@liquid-labs/liq-credentials-db": "file:.yalc/@liquid-labs/liq-credentials-db",
+    "@liquid-labs/octocache": "file:.yalc/@liquid-labs/octocache",
     "@liquid-labs/shell-toolkit": "^1.0.0-alpha.2",
     "core-js-pure": "^3.28.0",
     "octokit": "^2.0.14"

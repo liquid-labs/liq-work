@@ -1,12 +1,12 @@
 import * as fsPath from 'node:path'
 
 import createError from 'http-errors'
-import { Octokit } from 'octokit'
 
 import { determineOriginAndMain, hasBranch, hasRemote, workBranchName } from '@liquid-labs/git-toolkit'
 import { claimIssues, determineGitHubLogin, verifyIssuesAvailable } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
+import { Octocache } from '@liquid-labs/octocache'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { WorkDB } from './_lib/work-db'
@@ -74,22 +74,19 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   await claimIssues({ assignee, authToken, comment, issues, reporter })
 
   const workBranch = workBranchName({ primaryIssueID : issues[0] })
-  const octokit = new Octokit({ auth : authToken })
+  const octokit = new Octocache({ authToken })
   for (const project of projects) {
     const [org, projectBaseName] = project.split('/')
     const projectPath = fsPath.join(app.liq.playground(), org, projectBaseName)
 
     let repoData
     try {
-      repoData = await octokit.request('GET /repos/{owner}/{repo}', {
-        owner : org,
-        repo  : projectBaseName
-      })
+      repoData = await octokit.request(`GET /repos/${org}/${projectBaseName}`)
     }
     catch (e) {
       if (e.status === 404) throw createError.NotFound(`Could not find project '${project}' repo on GitHub: ${e.message}`, { cause: e })
     }
-    const isPrivate = repoData.data?.private
+    const isPrivate = repoData.private
 
     if (isPrivate) { // TODO: allow option to use the private protocol with public repos where user has write perms
       await setupPrivateWork({ octokit, org, projectBaseName, projectPath, reporter, workBranch })
@@ -99,10 +96,12 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     }
   }
 
-  const workDB = new WorkDB({ app, authToken })
+  const workDB = new WorkDB({ app, authToken, reporter })
   const workData = await workDB.startWork({ issues, projects, workBranch })
 
-  httpSmartResponse({ data : workData, msg : `Started work '${workData.describe}'.`, req, res })
+  reporter.push(`Started work '<em>${workData.description}<rst>'.`)
+
+  httpSmartResponse({ data : workData, msg : reporter.taskReport.join('\n'), req, res })
 }
 
 const setupPrivateWork = async({ octokit, org, projectBaseName, projectPath, reporter, workBranch }) => {
@@ -113,10 +112,7 @@ const setupPublicWork = async({ authToken, octokit, org, projectBaseName, projec
   const ghUser = await determineGitHubLogin({ authToken })
   let workRepoData
   try {
-    workRepoData = await octokit.request('GET /repos/{owner}/{repo}', {
-      owner : ghUser,
-      repo  : projectBaseName
-    })
+    workRepoData = await octokit.request(`GET /repos/${ghUser}/${projectBaseName}`)
   }
   catch (e) {
     if (e.status !== 404) throw e
@@ -147,11 +143,7 @@ const setupPublicWork = async({ authToken, octokit, org, projectBaseName, projec
 const checkoutWorkBranch = async({ octokit, owner, projectBaseName, projectPath, remote, reporter, workBranch }) => {
   let hasRemoteBranch
   try {
-    await octokit.request('GET /repos/{owner}/{repo}/branches/{branch}', {
-      owner,
-      repo   : projectBaseName,
-      branch : workBranch
-    })
+    await octokit.request(`GET /repos/${owner}/${projectBaseName}/branches/${workBranch}`)
     hasRemoteBranch = true
   }
   catch (e) {
