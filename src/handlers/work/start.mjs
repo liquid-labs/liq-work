@@ -20,6 +20,12 @@ const help = {
 const method = 'post'
 const path = ['work', 'start']
 const parameters = [
+  /* TODO
+  {
+    name : 'allowUncomitted',
+    isBoolean: true,
+    description: "By default, the 'start work' process will fail if any of the target repos are unclean. Setting `allowUncomitted` will proceed if there are uncommitted files and the repos are otherwise clean."
+  },*/ 
   {
     name        : 'assignee',
     description : 'The assignee (github login ID) to add to the issues. See `noAutoAssign`.'
@@ -38,7 +44,7 @@ const parameters = [
     name        : 'noAutoAssign',
     isBoolean   : true,
     description : "Suppresses the default behavior of assigning the issue based on the current user's GitHub authentication."
-  }
+  },
   {
     name         : 'projects',
     required     : true,
@@ -71,13 +77,19 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const octokit = new Octokit({ auth : authToken })
   for (const project of projects) {
     const [org, projectBaseName] = project.split('/')
-    const projectPath = fsPath.join(app.liqPlayground(), org, projectBaseName)
+    const projectPath = fsPath.join(app.liq.playground(), org, projectBaseName)
 
-    const repoData = await octokit.request('GET /repos/{owner}/{repo}', {
-      owner : org,
-      repo  : projectBaseName
-    })
-    const isPrivate = repoData.private
+    let repoData
+    try {
+      repoData = await octokit.request('GET /repos/{owner}/{repo}', {
+        owner : org,
+        repo  : projectBaseName
+      })
+    }
+    catch (e) {
+      if (e.status === 404) throw createError.NotFound(`Could not find project '${project}' repo on GitHub: ${e.message}`, { cause: e })
+    }
+    const isPrivate = repoData.data?.private
 
     if (isPrivate) { // TODO: allow option to use the private protocol with public repos where user has write perms
       await setupPrivateWork({ octokit, org, projectBaseName, projectPath, reporter, workBranch })
@@ -90,7 +102,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const workDB = new WorkDB({ app, authToken })
   const workData = await workDB.startWork({ issues, projects, workBranch })
 
-  httpSmartResponse({ data : workData, message : `Started work '${workData.describe}'.` })
+  httpSmartResponse({ data : workData, msg : `Started work '${workData.describe}'.`, req, res })
 }
 
 const setupPrivateWork = async({ octokit, org, projectBaseName, projectPath, reporter, workBranch }) => {
@@ -99,17 +111,23 @@ const setupPrivateWork = async({ octokit, org, projectBaseName, projectPath, rep
 
 const setupPublicWork = async({ authToken, octokit, org, projectBaseName, projectPath, reporter, workBranch }) => {
   const ghUser = await determineGitHubLogin({ authToken })
-  const workRepoData = await octokit.request('GET /repos/{owner}/{repo}', {
-    owner : ghUser,
-    repo  : projectBaseName
-  })
-  console.log('workRepoData:', workRepoData) // DEBUG
+  let workRepoData
+  try {
+    workRepoData = await octokit.request('GET /repos/{owner}/{repo}', {
+      owner : ghUser,
+      repo  : projectBaseName
+    })
+  }
+  catch (e) {
+    if (e.status !== 404) throw e
+    // else, just procede, we were testing if it exists and it doesn't so no problem.
+  }
 
   if (!workRepoData) { // then we need to create a fork
     await octokit.request('POST /repos/{owner}/{repo}/forks', {
       owner               : org,
       repo                : projectBaseName,
-      organization        : 'octocat',
+      organization        : ghUser,
       default_branch_only : true
     })
   }

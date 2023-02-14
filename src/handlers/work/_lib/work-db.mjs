@@ -26,7 +26,7 @@ const WorkDB = class WorkDB {
       const initiator = determineAuthorEmail()
       if (description === undefined) {
         const octokit = new Octokit({ auth : this.#authToken })
-        const [owner, repo, issue_number] = issues[0].split(/[/-]/) // eslint-disable-line camelcase
+        const [owner, repo, issue_number] = issues[0].split('/') // eslint-disable-line camelcase
 
         const issue = await octokit.request('GET /repos/{owner}/{repo}/issues/{issue_number}', {
           owner,
