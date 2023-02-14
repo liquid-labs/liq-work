@@ -3,7 +3,7 @@ import * as fsPath from 'node:path'
 import { hasRemote } from '@liquid-labs/git-toolkit'
 import { claimIssues, determineGitHubLogin, verifyIssuesAvailable, workBranchName } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
-import { CredentialsDB, purpose } from '@liquid-labs/liq-credentials-db'
+import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 const help = {
@@ -25,7 +25,8 @@ const parameters = [
     name         : 'projects',
     required     : true,
     isMultivalue : true,
-    description  : 'The project(s) to include in the new unit of work.'
+    description  : 'The project(s) to include in the new unit of work.',
+    optionsFunc  : ({ model }) => Object.keys(model.playground.projects)
   },
   {
     name: 'assignee',
@@ -57,7 +58,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   }
 
   const credDB = new CredentialsDB({ app, cache })
-  const authToken = credDB.token(purpose.GITHUB_API)
+  const authToken = credDB.token(purposes.GITHUB_API)
 
   await verifyIssuesAvailable({ authToken, issues, noAutoAssign, notClosed: true })
   await claimIssues({ assignee, authToken, comment, issues })
