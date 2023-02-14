@@ -59,8 +59,8 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const credDB = new CredentialsDB({ app, cache })
   const authToken = credDB.token(purpose.GITHUB_API)
 
-  verifyIssuesAvailable({ authToken, issues, noAutoAssign, notClosed: true })
-  claimIssues({ assignee, authToken, comment, issues })
+  await verifyIssuesAvailable({ authToken, issues, noAutoAssign, notClosed: true })
+  await claimIssues({ assignee, authToken, comment, issues })
 
   const workBranch = workBranchName({ primaryIssueID: issues[0] })
   const octokit = new Octokit({ auth: authToken })
@@ -93,7 +93,7 @@ const setupPrivateWork = async ({ octokit, org, projectBaseName, projectPath, wo
 }
 
 const setupPublicWork = async ({ authToken, octokit, org, projectBaseName, workBranch }) => {
-  const ghUser = determineGitHubLogin({ authToken })
+  const ghUser = await determineGitHubLogin({ authToken })
   const workRepoData = await octokit.request('GET /repos/{owner}/{repo}', {
     owner: ghUser,
     repo: projectBaseName
