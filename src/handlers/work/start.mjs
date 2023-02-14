@@ -71,7 +71,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const authToken = credDB.getToken(purposes.GITHUB_API)
 
   await verifyIssuesAvailable({ authToken, issues, noAutoAssign, notClosed : true })
-  await claimIssues({ assignee, authToken, comment, issues })
+  await claimIssues({ assignee, authToken, comment, issues, reporter })
 
   const workBranch = workBranchName({ primaryIssueID : issues[0] })
   const octokit = new Octokit({ auth : authToken })
