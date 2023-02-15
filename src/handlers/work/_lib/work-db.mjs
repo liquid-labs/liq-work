@@ -32,14 +32,27 @@ const WorkDB = class WorkDB {
 
     this.save()
 
-    return workData
+    return structuredClone(workData)
   }
 
   getData(workKey) {
     return structuredClone(this.#data[workKey])
   }
 
+  getIssueKeys(workKey) { return this.#data[workKey].issues.map((i) => i.id )}
+
   getWorkKeys() { return Object.keys(this.#data) }
+
+  removeIssues({ issues, workKey }) {
+    const workData = this.#data[workKey]
+    if (workData) {
+      workData.issues = workData.issues.filter((i) => !issues.includes(i.id))
+    }
+
+    this.save()
+
+    return structuredClone(workData)
+  }
 
   /**
    * #### Parameters
