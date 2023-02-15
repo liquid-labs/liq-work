@@ -12,7 +12,7 @@ LIQ_WORK_TEST_SRC_FILES:=$(shell find $(LIQ_WORK_SRC) -name "*.js")
 LIQ_WORK_TEST_BUILT_FILES:=$(patsubst $(LIQ_WORK_SRC)/%, test-staging/%, $(LIQ_WORK_TEST_SRC_FILES))
 #LIQ_WORK_TEST_SRC_DATA:=$(shell find $(LIQ_WORK_SRC) -path "*/test/data/*" -type f)
 #LIQ_WORK_TEST_BUILT_DATA:=$(patsubst $(LIQ_WORK_SRC)/%, test-staging/%, $(LIQ_WORK_TEST_SRC_DATA))
-LIQ_WORK:=dist/liq-projects.js
+LIQ_WORK:=dist/liq-work.js
 
 BUILD_TARGETS:=$(LIQ_WORK)
 
