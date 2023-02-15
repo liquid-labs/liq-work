@@ -7,4 +7,4 @@ const commonIssuesParameters = [
   }
 ]
 
-export  { commonIssuesParameters }
+export { commonIssuesParameters }

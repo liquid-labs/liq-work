@@ -26,7 +26,7 @@ const parameters = [
     name : 'allowUncomitted',
     isBoolean: true,
     description: "By default, the 'start work' process will fail if any of the target repos are unclean. Setting `allowUncomitted` will proceed if there are uncommitted files and the repos are otherwise clean."
-  },*/ 
+  }, */
   {
     name         : 'projects',
     required     : true,
@@ -67,7 +67,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
       repoData = await octokit.request(`GET /repos/${org}/${projectBaseName}`)
     }
     catch (e) {
-      if (e.status === 404) throw createError.NotFound(`Could not find project '${project}' repo on GitHub: ${e.message}`, { cause: e })
+      if (e.status === 404) throw createError.NotFound(`Could not find project '${project}' repo on GitHub: ${e.message}`, { cause : e })
     }
     const isPrivate = repoData.private
 

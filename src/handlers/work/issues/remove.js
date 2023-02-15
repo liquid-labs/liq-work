@@ -1,8 +1,10 @@
-import { commonIssuesParameters } from '../_lib/common-issues-parameters'
+import createError from 'http-errors'
+
 import { releaseIssues } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 
+import { commonIssuesParameters } from '../_lib/common-issues-parameters'
 import { WorkDB } from '../_lib/work-db'
 
 const help = {
@@ -16,22 +18,22 @@ const path = ['work', ':workKey', 'issues', 'remove']
 
 const parameters = [
   {
-    name: 'comment',
-    description: 'Comment to add to the issues as they are removed. A default comment will be generated if none is provided. Pass an empty string to suppress leaving a comment.'
+    name        : 'comment',
+    description : 'Comment to add to the issues as they are removed. A default comment will be generated if none is provided. Pass an empty string to suppress leaving a comment.'
   },
   {
-    name: 'noUnassign',
-    isBoolean: true,
-    description: 'Setting `noUnassign` to true maintains the issue assignments rather than the default behavior of unassigning the issue.'
+    name        : 'noUnassign',
+    isBoolean   : true,
+    description : 'Setting `noUnassign` to true maintains the issue assignments rather than the default behavior of unassigning the issue.'
   },
   {
-    name: 'noUnlabel',
-    isBoolean: true,
-    description: "Setting `noUnlabel` to true keeps the 'claim label' on the issue rather than the default behavior of removing it."
+    name        : 'noUnlabel',
+    isBoolean   : true,
+    description : "Setting `noUnlabel` to true keeps the 'claim label' on the issue rather than the default behavior of removing it."
   },
   ...commonIssuesParameters
 ]
-const issueOptionsFunc = async ({ app, workKey }) => {
+const issueOptionsFunc = async({ app, workKey }) => {
   const workDB = new WorkDB({ app })
   return workDB.getIssueKeys(workKey)
 }
@@ -60,8 +62,8 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const updatedWorkData = workDB.removeIssues({ workKey, issues })
 
   httpSmartResponse({
-    data: updatedWorkData,
-    msg: `Removed issues '<em>${issues.join("<rst>', '<em>")}<rst>' from unit of work '<em>${workKey}<rst>'.`,
+    data : updatedWorkData,
+    msg  : `Removed issues '<em>${issues.join("<rst>', '<em>")}<rst>' from unit of work '<em>${workKey}<rst>'.`,
     req,
     res
   })

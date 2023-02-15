@@ -22,11 +22,11 @@ const WorkDB = class WorkDB {
 
     const octocache = new Octocache({ authToken })
     for (const issue of issues) {
-      const [ org, project, number ] = issue.split('/')
+      const [org, project, number] = issue.split('/')
       const issueData = await octocache.request(`GET /repos/${org}/${project}/issues/${number}`)
       workData.issues.push({
-        id: issue,
-        summary: issueData.title
+        id      : issue,
+        summary : issueData.title
       })
     }
 
@@ -39,7 +39,7 @@ const WorkDB = class WorkDB {
     return structuredClone(this.#data[workKey])
   }
 
-  getIssueKeys(workKey) { return this.#data[workKey].issues.map((i) => i.id )}
+  getIssueKeys(workKey) { return this.#data[workKey].issues.map((i) => i.id) }
 
   getWorkKeys() { return Object.keys(this.#data) }
 
@@ -60,7 +60,7 @@ const WorkDB = class WorkDB {
    * - `projects`: an array of fully qaulified project names
    * - `workBranch`: the name of the work branch.
    */
-  async startWork ({ description, issues, projects, workBranch }) {
+  async startWork({ description, issues, projects, workBranch }) {
     const octokit = new Octocache({ authToken : this.#authToken })
     const now = new Date()
     const initiator = determineAuthorEmail()
@@ -69,6 +69,7 @@ const WorkDB = class WorkDB {
 
       const [owner, repo, issue_number] = issues[0].split('/') // eslint-disable-line camelcase
 
+      // eslint-disable-next-line camelcase
       const issue = await octokit.request(`GET /repos/${owner}/${repo}/issues/${issue_number}`)
       description = issue.title
       this.#reporter?.push(`  got: ${description}`)
@@ -76,11 +77,11 @@ const WorkDB = class WorkDB {
 
     const issuesData = []
     for (const issue of issues) {
-      const [ org, projectBaseName, number ] = issue.split('/')
+      const [org, projectBaseName, number] = issue.split('/')
       const issueData = await octokit.request(`GET /repos/${org}/${projectBaseName}/issues/${number}`)
       issuesData.push({
-        id: issue,
-        summary: issueData.title
+        id      : issue,
+        summary : issueData.title
       })
     }
 
@@ -88,8 +89,8 @@ const WorkDB = class WorkDB {
     for (const project of projects) {
       const projectData = await octokit.request(`GET /repos/${project}`)
       projectsData.push({
-        name: project,
-        private: projectData.private
+        name    : project,
+        private : projectData.private
       })
     }
 

@@ -6,11 +6,11 @@ const setup = ({ app, model, reporter }) => {
   app.liq.constants.WORK_DB_PATH = fsPath.join(app.liq.home(), 'work', 'work-db.yaml')
 
   app.liq.pathResolvers.workKey = {
-    optionsFetcher: () => {
+    optionsFetcher : () => {
       const workDB = new WorkDB({ app })
       return workDB.getWorkKeys()
     },
-    bitReString: 'work-[^/]+(?:/|%2[Ff])[^/]+(?:/|%2[Ff])[0-9]+'
+    bitReString : 'work-[^/]+(?:/|%2[Ff])[^/]+(?:/|%2[Ff])[0-9]+'
   }
 }
 
