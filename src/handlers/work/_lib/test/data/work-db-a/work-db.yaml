@@ -1,0 +1,13 @@
+work-liquid-labs/liq-work/1:
+  description: Implement work issue management
+  initiator: zane@liquid-labs.com
+  issues:
+    - id: liquid-labs/liq-work/1
+      summary: Implement work issue management
+  projects:
+    - name: liquid-labs/liq-work
+      private: true
+  started: '2023-01-02'
+  startedEpoch: 1676418665873
+  workBranch: work-liquid-labs/liq-work/1
+
