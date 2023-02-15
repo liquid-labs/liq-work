@@ -16,6 +16,13 @@ const WorkDB = class WorkDB {
     this.#data = readFJSON(this.#dbFilePath, { createOnNone : {} })
     this.#reporter = reporter
   }
+
+  getData(workKey) {
+    return structuredClone(this.#data[workKey])
+  }
+
+  getWorkKeys() { return Object.keys(this.#data) }
+
   /**
    * #### Parameters
    * - `issues`: an array of strings in the  form of &lt;org&gt;/&lt;project base name&gt;-&lt;issue number&gt;
