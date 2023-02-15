@@ -1,5 +1,7 @@
+import { handlers } from './issues'
+
 import * as startHandler from './start'
 
-const handlers = [startHandler]
+handlers.push(startHandler)
 
 export { handlers }
