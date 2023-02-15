@@ -17,6 +17,24 @@ const WorkDB = class WorkDB {
     this.#reporter = reporter
   }
 
+  async addIssues({ authToken, issues, workKey }) {
+    const workData = this.#data[workKey] // don't use 'getData', we want the original.
+
+    const octocache = new Octocache({ authToken })
+    for (const issue of issues) {
+      const [ org, project, number ] = issue.split('/')
+      const issueData = await octocache.request(`GET /repos/${org}/${project}/issues/${number}`)
+      workData.issues.push({
+        id: issue,
+        summary: issueData.title
+      })
+    }
+
+    this.save()
+
+    return workData
+  }
+
   getData(workKey) {
     return structuredClone(this.#data[workKey])
   }
