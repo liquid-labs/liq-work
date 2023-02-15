@@ -1,4 +1,5 @@
 import { commonOutputParams, formatOutput } from '@liquid-labs/liq-handlers-lib'
+import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { WorkDB } from '../_lib/work-db'
 
@@ -10,7 +11,14 @@ const help = {
 
 const method = 'get'
 const path = ['work', ':workKey', 'issues', 'list']
-const parameters = [...commonOutputParams()]
+const parameters = [
+  {
+    name: 'browseEach',
+    isBoolean: true,
+    description: 'Will attempt to open a browser window for each issues in the list.'
+  },
+  ...commonOutputParams()
+]
 Object.freeze(parameters)
 
 const allFields = [ 'id', 'summary' ]
@@ -23,10 +31,17 @@ const terminalFormatter = (issues) => issues.map((i) => `<em>${i.id}<rst>: ${i.s
 const textFormatter = (issues) => issues.map((i) => `${i.id}: ${i.summary}`).join('\n')
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
-  let { workKey } = req.vars
+  let { browseEach = false, workKey } = req.vars
 
   const workDB = new WorkDB({ app })
   const workData = await workDB.getData(workKey)
+
+  if (browseEach === true) {
+    for (const issue of workData.issues) {
+      const [ org, project, number ] = issue.id.split('/')
+      tryExec(`open 'https://github.com/${org}/${project}/issues/${number}'`)
+    }
+  }
 
   formatOutput({
     basicTitle: `${workKey} Issues`,
