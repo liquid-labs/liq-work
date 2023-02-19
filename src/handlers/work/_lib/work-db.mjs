@@ -81,7 +81,8 @@ const WorkDB = class WorkDB {
       const issueData = await octokit.request(`GET /repos/${org}/${projectBaseName}/issues/${number}`)
       issuesData.push({
         id      : issue,
-        summary : issueData.title
+        summary : issueData.title,
+        status  : 'open'
       })
     }
 
@@ -90,7 +91,8 @@ const WorkDB = class WorkDB {
       const projectData = await octokit.request(`GET /repos/${project}`)
       projectsData.push({
         name    : project,
-        private : projectData.private
+        private : projectData.private,
+        status  : 'active'
       })
     }
 
