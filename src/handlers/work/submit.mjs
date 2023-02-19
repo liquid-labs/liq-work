@@ -2,11 +2,12 @@ import * as fsPath from 'node:path'
 
 import createError from 'http-errors'
 
-import { determineOriginAndMain, verifyBranchInSync, verifyClean } from '@liquid-labs/git-toolkit'
-import { determineGitHubLogin, workBranchName } from '@liquid-labs/github-toolkit'
+import { determineOriginAndMain, verifyBranchInSync, verifyClean, workBranchName } from '@liquid-labs/git-toolkit'
+import { determineGitHubLogin } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 import { Octocache } from '@liquid-labs/octocache'
+import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { GH_BASE_URL, WORKSPACE } from './_lib/constants'
 import { WorkDB } from './_lib/work-db'
@@ -14,7 +15,9 @@ import { WorkDB } from './_lib/work-db'
 const help = {
   name        : 'Work submit.',
   summary     : 'Submits changes for review and merging.',
-  description : `Submits the changes associated with a unit of work by creating a pull request. By default, changes to all involved projects are submitted and all issues are closed by merging the pull request associated to the primary project of the unit of work and the projects status is marked as 'submitted' in the work DB, unless \`keepActive\` is specified.
+  description : `Submits the changes associated with a unit of work by creating a pull request for the changes in each project associated with the unit of work. By default, any un-pushed local changes are push to the proper remote. Each PR will reference the associated issues and linked to the primary project's PR for closing when it is merged. Finally, each project's status is marked as 'submitted' in the unit of work.
+
+Pushing chanes to the remote can be suppressed with \`noPush\`.
 
 If you have portions that are complete, you can use the \`project\` parameter. Only the specified projects will be included in the submission. In that case, the first project specified will be considered the close target unless \`closeTarget\` is specified, though by default no issues are closed in a partial submit unless \`closes\` is specified.
 
@@ -61,6 +64,11 @@ const parameters = [
     description : 'When set, then no issues are closed in a situation where they would otherwise be closed.'
   },
   {
+    name        : 'noPush',
+    isBoolean   : true,
+    description : 'Supresses the default behavior of pushing local changes to the working remote. If the local and remote branch are not in sync and `noPush` is true, then an error will be thrown.'
+  },
+  {
     name         : 'projects',
     isMultivalue : true,
     description  : "Limits the project(s) whose changes are submitted to the specified projects. Projects are specified by a standard '&lt;org&gt;/&lt;project&gt;' ID."
@@ -97,6 +105,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const workUnit = workDB.getData(workKey)
   if (workUnit === undefined) throw createError.NotFound(`No such active unit of work '${workKey}' found.`)
 
+  const { noPush } = req.vars
   let { assignees, closes, closeTarget, noCloses, projects } = req.vars
 
   // determine assignee(s)
@@ -131,6 +140,8 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   }
 
   // inputs have ben normalized we are now ready to start verifying the repo state
+  const workBranch = workBranchName({ primaryIssueID : workUnit.issues[0].id })
+
   for (const { name: projectFQN, private: isPrivate } of projects) {
     const [org, project] = projectFQN.split('/')
     const projectPath = fsPath.join(app.liq.playground(), org, project)
@@ -140,10 +151,12 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     else { remote = WORKSPACE }
 
     verifyClean({ projectPath, reporter })
+    if (noPush !== true) {
+      tryExec(`cd '${projectPath}' && git push ${remote} ${workBranch}`)
+    }
     verifyBranchInSync({ branch : workKey, description : 'work', projectPath, remote, reporter })
   }
   // everything is verified ready for submission
-  const workBranch = workBranchName({ primaryIssueID : workUnit.issues[0].id })
 
   for (const { name: projectFQN, private: isPrivate } of projects) {
     const [org, project] = projectFQN.split('/')
