@@ -55,6 +55,11 @@ const parameters = [
     description : 'The project which closes the issues associated with the submission. See method description and the`closes` parameter for more on the associated issues.'
   },
   {
+    name        : 'dirtyOK',
+    isBoolean   : true,
+    description : 'When set, will continue even if the local repository is not clean.'
+  },
+  {
     name        : 'keepActive',
     description : "When specified, the status of the projects associated with the submission is left as 'active'. This can be useful when you expect further changes on the work branch, but you have a stable code base and merge-worthy interim updates. In other words, there's no bar to having multiple pull-requests+merges associated with a project within a unit of work, it's just that typically it all comes at the end in one go."
   },
@@ -105,12 +110,12 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const workUnit = workDB.getData(workKey)
   if (workUnit === undefined) throw createError.NotFound(`No such active unit of work '${workKey}' found.`)
 
-  const { noPush } = req.vars
+  const { dirtyOK, noPush } = req.vars
   let { assignees, closes, closeTarget, noCloses, projects } = req.vars
 
   // determine assignee(s)
   if (assignees === undefined) {
-    assignees = [determineGitHubLogin({ authToken })]
+    assignees = [ (await determineGitHubLogin({ authToken })).login ]
   }
 
   // determine the projects to submit
@@ -150,7 +155,9 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     if (isPrivate === true) { ([remote] = determineOriginAndMain({ projectPath, reporter })) }
     else { remote = WORKSPACE }
 
-    verifyClean({ projectPath, reporter })
+    if (dirtyOK !== true) {
+      verifyClean({ projectPath, reporter })
+    }
     if (noPush !== true) {
       tryExec(`cd '${projectPath}' && git push ${remote} ${workBranch}`)
     }
@@ -161,18 +168,18 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   for (const { name: projectFQN, private: isPrivate } of projects) {
     const [org, project] = projectFQN.split('/')
 
-    const octocache = new Octocache({ auth : authToken })
+    const octocache = new Octocache({ authToken })
 
     // build up the PR body
     let body = 'Pull request '
 
-    body += project === closeTarget ? 'to' : 'in support of issues'
+    body += projectFQN === closeTarget ? 'to' : 'in support of issues'
     body += closes.length > 1 ? ': \n* ' : ' '
     body += closes
       .map((i) => {
         const [o, p, n] = i.split('/')
         const issueRef = `${o}/${p}` === project ? `#${n}` : `${o}/${p}#${n}`
-        return project === closeTarget
+        return projectFQN === closeTarget
           ? `resolve ${issueRef}`
           : `[${issueRef}](${GH_BASE_URL}/${o}/${p}/issues/${n})`
       })
@@ -180,14 +187,14 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
 
     let head
     if (isPrivate === true) {
-      const ghUser = determineGitHubLogin({ authToken })
-      head = `${ghUser}:${workBranch}`
-    }
-    else {
       head = workBranch
     }
+    else {
+      const ghUser = await determineGitHubLogin({ authToken })
+      head = `${ghUser.login}:${workBranch}`
+    }
 
-    const repoData = octocache.request(`GET /repos/${org}/${project}`)
+    const repoData = await octocache.request(`GET /repos/${org}/${project}`)
     const base = repoData.default_branch
 
     await octocache.request(
