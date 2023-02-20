@@ -204,6 +204,14 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
             : `[${issueRef}](${GH_BASE_URL}/${o}/${p}/issues/${n})`
         })
         .join('\n* ')
+      if (projects.length > 1) {
+        const otherProjects = projects.filter((p) => p.name !== projectFQN)
+        body += '\n\nRelated projects: '
+        for (const { name: otherProjFQN } of projects) {
+          body += `[${otherProjFQN}](${GH_BASE_URL}/${otherProjFQN}) `
+            + `([PRs](${GH_BASE_URL}/${otherProjFQN}/pulls?isq=%3Aopen+head%3A${head.replace(':', '%3A')}))`
+        }
+      }
 
       const repoData = await octocache.request(`GET /repos/${org}/${project}`)
       const base = repoData.default_branch
