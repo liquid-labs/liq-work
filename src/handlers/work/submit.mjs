@@ -15,7 +15,7 @@ import { WorkDB } from './_lib/work-db'
 const help = {
   name        : 'Work submit.',
   summary     : 'Submits changes for review and merging.',
-  description : `Submits the changes associated with a unit of work by creating a pull request for the changes in each project associated with the unit of work. By default, any un-pushed local changes are push to the proper remote. Each PR will reference the associated issues and linked to the primary project's PR for closing when it is merged. Finally, each project's status is marked as 'submitted' in the unit of work.
+  description : `Submits the changes associated with a unit of work by creating a pull request for the changes in each project associated with the unit of work. By default, any un-pushed local changes are push to the proper remote. Each PR will reference the associated issues and linked to the primary project's PR for closing when it is merged.
 
 Pushing chanes to the remote can be suppressed with \`noPush\`.
 
@@ -60,10 +60,6 @@ const parameters = [
     description : 'When set, will continue even if the local repository is not clean.'
   },
   {
-    name        : 'keepActive',
-    description : "When specified, the status of the projects associated with the submission is left as 'active'. This can be useful when you expect further changes on the work branch, but you have a stable code base and merge-worthy interim updates. In other words, there's no bar to having multiple pull-requests+merges associated with a project within a unit of work, it's just that typically it all comes at the end in one go."
-  },
-  {
     name        : 'noClosed',
     isBoolean   : true,
     description : 'When set, then no issues are closed in a situation where they would otherwise be closed.'
@@ -93,6 +89,8 @@ const parameters = [
 Object.freeze(parameters)
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
+  reporter = reporter.isolate()
+
   let { workKey } = req.vars
   if (workKey === undefined) { // then we're in a '.' call
     const clientCWD = req.get('X-CWD')
@@ -170,21 +168,6 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
 
     const octocache = new Octocache({ authToken })
 
-    // build up the PR body
-    let body = 'Pull request '
-
-    body += projectFQN === closeTarget ? 'to' : 'in support of issues'
-    body += closes.length > 1 ? ': \n* ' : ' '
-    body += closes
-      .map((i) => {
-        const [o, p, n] = i.split('/')
-        const issueRef = `${o}/${p}` === project ? `#${n}` : `${o}/${p}#${n}`
-        return projectFQN === closeTarget
-          ? `resolve ${issueRef}`
-          : `[${issueRef}](${GH_BASE_URL}/${o}/${p}/issues/${n})`
-      })
-      .join('\n* ')
-
     let head
     if (isPrivate === true) {
       head = workBranch
@@ -194,25 +177,58 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
       head = `${ghUser.login}:${workBranch}`
     }
 
-    const repoData = await octocache.request(`GET /repos/${org}/${project}`)
-    const base = repoData.default_branch
+    const openPRs = octocache.paginate(`GET /repos/${org}/${project}/pulls`, { head, state: 'open' })
+    if (openPRs.length > 0) { // really, should (and I think can) only be one, but this is the better question anyway
+      reporter.push(`Project <em>${projectFQN}<rst> branch <code>${workBranch}<rst> PR <bold>extant and open<rst>; pushing updates...`)
+      if (isPrivate === true) { ([remote] = determineOriginAndMain({ projectPath, reporter })) }
+      else { remote = WORKSPACE }
+      tryExec(`cd '${projectPath}' && git push ${remote} ${workBranch}`)
+    }
+    else { // we create the PR
+      reporter.push(`Creating PR for <em>${projectFQN}<rst> branch <code>${workBranch}<rst>...`)
+      // build up the PR body
+      let body = 'Pull request '
 
-    await octocache.request(
-      'POST /repos/{owner}/{repo}/pulls',
-      {
-        owner : org,
-        repo  : project,
-        title : workUnit.description,
-        body,
-        head,
-        base
-      },
-      { noClear : true } // should be OK
-    )
+      body += projectFQN === closeTarget ? 'to' : 'in support of issues'
+      body += closes.length > 1 ? ': \n* ' : ' '
+      body += closes
+        .map((i) => {
+          const [o, p, n] = i.split('/')
+          const issueRef = `${o}/${p}` === project ? `#${n}` : `${o}/${p}#${n}`
+          return projectFQN === closeTarget
+            ? `resolve ${issueRef}`
+            : `[${issueRef}](${GH_BASE_URL}/${o}/${p}/issues/${n})`
+        })
+        .join('\n* ')
+      if (projects.length > 1) {
+        const otherProjects = projects.filter((p) => p.name !== projectFQN)
+        body += '\n\nRelated projects: '
+        for (const { name: otherProjFQN } of projects) {
+          body += `[${otherProjFQN}](${GH_BASE_URL}/${otherProjFQN}) `
+            + `([PRs](${GH_BASE_URL}/${otherProjFQN}/pulls?isq=%3Aopen+head%3A${head.replace(':', '%3A')}))`
+        }
+      }
+
+      const repoData = await octocache.request(`GET /repos/${org}/${project}`)
+      const base = repoData.default_branch
+
+      await octocache.request(
+        'POST /repos/{owner}/{repo}/pulls',
+        {
+          owner : org,
+          repo  : project,
+          title : workUnit.description,
+          body,
+          head,
+          base
+        },
+        { noClear : true } // should be OK
+      )
+    }
   }
 
   httpSmartResponse({
-    msg : `Created pull-request for <em>${projects.map((p) => p.name).join('<rst>, <em>')}<rst>.`,
+    msg : reporter.taskReport().join('\n'),
     req,
     res
   })
