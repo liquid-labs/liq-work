@@ -10,6 +10,7 @@ import { Octocache } from '@liquid-labs/octocache'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { commonAssignParameters } from './_lib/common-assign-parameters'
+import { WORKSPACE } from './_lib/constants'
 import { WorkDB } from './_lib/work-db'
 
 const help = {
@@ -37,8 +38,6 @@ const parameters = [
   ...commonAssignParameters()
 ]
 Object.freeze(parameters)
-
-const WORKSPACE = 'workspace'
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
   let { assignee, comment, issues, noAutoAssign = false, projects } = req.vars

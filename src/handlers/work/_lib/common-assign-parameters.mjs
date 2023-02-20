@@ -6,8 +6,8 @@ const commonAssignParameters = () => [
     description : 'The assignee (github login ID) to add to the issues. See `noAutoAssign`.'
   },
   {
-    name        : 'comemnt',
-    description : "The comment to use when claiming an issue. Defaults to: 'Work for this issue has begun on branch &lt;workBranchName&gt;.'"
+    name        : 'comment',
+    description : "The comment to use when claiming an issue. Defaults to: 'Work for this issue has begun on branch &lt;work branch name&gt;.'"
   },
   {
     name        : 'noAutoAssign',
