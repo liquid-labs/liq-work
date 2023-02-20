@@ -15,7 +15,7 @@ import { WorkDB } from './_lib/work-db'
 const help = {
   name        : 'Work submit.',
   summary     : 'Submits changes for review and merging.',
-  description : `Submits the changes associated with a unit of work by creating a pull request for the changes in each project associated with the unit of work. By default, any un-pushed local changes are push to the proper remote. Each PR will reference the associated issues and linked to the primary project's PR for closing when it is merged. Finally, each project's status is marked as 'submitted' in the unit of work.
+  description : `Submits the changes associated with a unit of work by creating a pull request for the changes in each project associated with the unit of work. By default, any un-pushed local changes are push to the proper remote. Each PR will reference the associated issues and linked to the primary project's PR for closing when it is merged.
 
 Pushing chanes to the remote can be suppressed with \`noPush\`.
 
@@ -58,10 +58,6 @@ const parameters = [
     name        : 'dirtyOK',
     isBoolean   : true,
     description : 'When set, will continue even if the local repository is not clean.'
-  },
-  {
-    name        : 'keepActive',
-    description : "When specified, the status of the projects associated with the submission is left as 'active'. This can be useful when you expect further changes on the work branch, but you have a stable code base and merge-worthy interim updates. In other words, there's no bar to having multiple pull-requests+merges associated with a project within a unit of work, it's just that typically it all comes at the end in one go."
   },
   {
     name        : 'noClosed',
