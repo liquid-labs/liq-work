@@ -24,7 +24,7 @@ Object.freeze(parameters)
 const allFields = ['id', 'summary']
 const defaultFields = allFields
 
-const mdFormatter = (issues, title) => `# ${title}\n\n${issues.map((i) => `* __${i.id}: ${i.descirption}`).join('\n')}\n`
+const mdFormatter = (issues, title) => `# ${title}\n\n${issues.map((i) => `* __${i.id}__: ${i.descirption}`).join('\n')}\n`
 
 const terminalFormatter = (issues) => issues.map((i) => `<em>${i.id}<rst>: ${i.summary}`).join('\n')
 
