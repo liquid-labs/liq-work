@@ -93,6 +93,8 @@ const parameters = [
 Object.freeze(parameters)
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
+  reporter = reporter.isolate()
+
   let { workKey } = req.vars
   if (workKey === undefined) { // then we're in a '.' call
     const clientCWD = req.get('X-CWD')
@@ -170,21 +172,6 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
 
     const octocache = new Octocache({ authToken })
 
-    // build up the PR body
-    let body = 'Pull request '
-
-    body += projectFQN === closeTarget ? 'to' : 'in support of issues'
-    body += closes.length > 1 ? ': \n* ' : ' '
-    body += closes
-      .map((i) => {
-        const [o, p, n] = i.split('/')
-        const issueRef = `${o}/${p}` === project ? `#${n}` : `${o}/${p}#${n}`
-        return projectFQN === closeTarget
-          ? `resolve ${issueRef}`
-          : `[${issueRef}](${GH_BASE_URL}/${o}/${p}/issues/${n})`
-      })
-      .join('\n* ')
-
     let head
     if (isPrivate === true) {
       head = workBranch
@@ -194,25 +181,50 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
       head = `${ghUser.login}:${workBranch}`
     }
 
-    const repoData = await octocache.request(`GET /repos/${org}/${project}`)
-    const base = repoData.default_branch
+    const openPRs = octocache.paginate(`GET /repos/${org}/${project}/pulls`, { head, state: 'open' })
+    if (openPRs.length > 0) { // really, should (and I think can) only be one, but this is the better question anyway
+      reporter.push(`Project <em>${projectFQN}<rst> branch <code>${workBranch}<rst> PR <bold>extant and open<rst>; pushing updates...`)
+      if (isPrivate === true) { ([remote] = determineOriginAndMain({ projectPath, reporter })) }
+      else { remote = WORKSPACE }
+      tryExec(`cd '${projectPath}' && git push ${remote} ${workBranch}`)
+    }
+    else { // we create the PR
+      reporter.push(`Creating PR for <em>${projectFQN}<rst> branch <code>${workBranch}<rst>...`)
+      // build up the PR body
+      let body = 'Pull request '
 
-    await octocache.request(
-      'POST /repos/{owner}/{repo}/pulls',
-      {
-        owner : org,
-        repo  : project,
-        title : workUnit.description,
-        body,
-        head,
-        base
-      },
-      { noClear : true } // should be OK
-    )
+      body += projectFQN === closeTarget ? 'to' : 'in support of issues'
+      body += closes.length > 1 ? ': \n* ' : ' '
+      body += closes
+        .map((i) => {
+          const [o, p, n] = i.split('/')
+          const issueRef = `${o}/${p}` === project ? `#${n}` : `${o}/${p}#${n}`
+          return projectFQN === closeTarget
+            ? `resolve ${issueRef}`
+            : `[${issueRef}](${GH_BASE_URL}/${o}/${p}/issues/${n})`
+        })
+        .join('\n* ')
+
+      const repoData = await octocache.request(`GET /repos/${org}/${project}`)
+      const base = repoData.default_branch
+
+      await octocache.request(
+        'POST /repos/{owner}/{repo}/pulls',
+        {
+          owner : org,
+          repo  : project,
+          title : workUnit.description,
+          body,
+          head,
+          base
+        },
+        { noClear : true } // should be OK
+      )
+    }
   }
 
   httpSmartResponse({
-    msg : `Created pull-request for <em>${projects.map((p) => p.name).join('<rst>, <em>')}<rst>.`,
+    msg : reporter.taskReport().join('\n'),
     req,
     res
   })
