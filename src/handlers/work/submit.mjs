@@ -6,6 +6,7 @@ import { determineOriginAndMain, verifyBranchInSync, verifyClean, workBranchName
 import { determineGitHubLogin } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
+import { runQA } from '@liquid-labs/liq-qa-lib'
 import { Octocache } from '@liquid-labs/octocache'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
@@ -161,11 +162,14 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     }
     verifyBranchInSync({ branch : workKey, description : 'work', projectPath, remote, reporter })
   }
-  // everything is verified ready for submission
+  // we are ready to generate QA files and submit work
 
   for (const { name: projectFQN, private: isPrivate } of projects) {
     const [org, project] = projectFQN.split('/')
     const projectPath = fsPath.join(app.liq.playground(), org, project)
+
+    runQA({ projectPath, reporter })
+    cleanupQAFiles({ projectPath, reporter })
 
     const octocache = new Octocache({ authToken })
 
