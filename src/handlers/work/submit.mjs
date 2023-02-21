@@ -146,7 +146,9 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   // inputs have ben normalized we are now ready to start verifying the repo state
   const workBranch = workBranchName({ primaryIssueID : workUnit.issues[0].id })
 
+  // first, we check readiness
   for (const { name: projectFQN, private: isPrivate } of projects) {
+    repoter.push(`Checking status of <em>${projectFQN}<rst>...`)
     const [org, project] = projectFQN.split('/')
     const projectPath = fsPath.join(app.liq.playground(), org, project)
 
