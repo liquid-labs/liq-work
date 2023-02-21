@@ -9,8 +9,8 @@ import { WorkDB } from '../_lib/work-db'
 
 const help = {
   name        : 'Work issues remove',
-  summary     : 'Remove an issue from a unit of work.',
-  description : 'Removess an issue from a unit of work.'
+  summary     : 'Remove issues from a unit of work.',
+  description : 'Removes issues from the indicated unit of work.'
 }
 
 const method = 'delete'
@@ -33,7 +33,7 @@ const parameters = [
   },
   ...commonIssuesParameters
 ]
-const issueOptionsFunc = async({ app, workKey }) => {
+const issueOptionsFunc = ({ app, workKey }) => {
   const workDB = new WorkDB({ app })
   return workDB.getIssueKeys(workKey)
 }
@@ -55,7 +55,6 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
 
   const credDB = new CredentialsDB({ app, cache, reporter })
   const authToken = credDB.getToken(purposes.GITHUB_API)
-  console.log('issues:', issues) // DEBUG
 
   await releaseIssues({ authToken, comment, issues, noUnassign, noUnlabel, reporter })
 

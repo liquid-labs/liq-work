@@ -4,13 +4,13 @@ import { tryExec } from '@liquid-labs/shell-toolkit'
 import { WorkDB } from '../_lib/work-db'
 
 const help = {
-  name        : 'Work issues list',
-  summary     : 'List work issues.',
-  description : 'Lists the issues associated with the indicated unit of work.'
+  name        : 'Work projects list',
+  summary     : 'List work projects.',
+  description : 'Lists the projects associated with the indicated unit of work.'
 }
 
 const method = 'get'
-const path = ['work', ':workKey', 'issues', 'list']
+const path = ['work', ':workKey', 'projects', 'list']
 const parameters = [
   {
     name        : 'browseEach',
@@ -21,14 +21,14 @@ const parameters = [
 ]
 Object.freeze(parameters)
 
-const allFields = ['id', 'summary']
+const allFields = ['name', 'private']
 const defaultFields = allFields
 
-const mdFormatter = (issues, title) => `# ${title}\n\n${issues.map((i) => `* __${i.id}__: ${i.descirption}`).join('\n')}\n`
+const mdFormatter = (issues, title) => `# ${title}\n\n${issues.map((i) => `- __${i.name}__:\n  - private: ${i.private}`).join('\n')}\n`
 
-const terminalFormatter = (issues) => issues.map((i) => `<em>${i.id}<rst>: ${i.summary}`).join('\n')
+const terminalFormatter = (issues) => issues.map((i) => `<em>${i.name}<rst>:\n  - private: <code>${i.private}<rst>`).join('\n')
 
-const textFormatter = (issues) => issues.map((i) => `${i.id}: ${i.summary}`).join('\n')
+const textFormatter = (issues) => issues.map((i) => `${i.name}:\n  - private: ${i.private}`).join('\n')
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const { browseEach = false, workKey } = req.vars
@@ -37,15 +37,15 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const workData = await workDB.getData(workKey)
 
   if (browseEach === true) {
-    for (const issue of workData.issues) {
-      const [org, project, number] = issue.id.split('/')
-      tryExec(`open 'https://github.com/${org}/${project}/issues/${number}'`)
+    for (const issue of workData.projects) {
+      const projectFQN = issue.name
+      tryExec(`open 'https://github.com/${projectFQN}'`)
     }
   }
 
   formatOutput({
-    basicTitle : `${workKey} Issues`,
-    data       : workData.issues,
+    basicTitle : `${workKey} Projects`,
+    data       : workData.projects,
     allFields,
     defaultFields,
     mdFormatter,

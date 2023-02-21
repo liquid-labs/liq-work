@@ -10,8 +10,8 @@ import { WorkDB } from '../_lib/work-db'
 
 const help = {
   name        : 'Work issues add',
-  summary     : 'Add an issue to a unit of work.',
-  description : 'Adds an issue to a unit of work.'
+  summary     : 'Add issues to a unit of work.',
+  description : 'Adds one or more issues to a unit of work.'
 }
 
 const method = 'put'
@@ -49,7 +49,9 @@ Object.freeze(parameters)
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
   let { assignee, comment, issues, noAutoAssign, workKey } = req.vars
 
-  const workDB = new WorkDB({ app, reporter })
+  const credDB = new CredentialsDB({ app, cache, reporter })
+  const authToken = credDB.getToken(purposes.GITHUB_API)
+  const workDB = new WorkDB({ app, authToken, reporter })
 
   // normalize the issue spec; add default project to issues
   const workData = workDB.getData(workKey)
@@ -59,13 +61,10 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const primaryProject = workData.projects[0].name
   issues = issues.map((i) => i.match(/^\d+$/) ? primaryProject + '/' + i : i)
 
-  const credDB = new CredentialsDB({ app, cache, reporter })
-  const authToken = credDB.getToken(purposes.GITHUB_API)
-
   await verifyIssuesAvailable({ authToken, issues, noAutoAssign, notClosed : true, reporter })
   await claimIssues({ assignee, authToken, comment, issues, reporter })
 
-  const updatedWorkData = await workDB.addIssues({ authToken, issues, workKey })
+  const updatedWorkData = await workDB.addIssues({ issues, workKey })
 
   httpSmartResponse({
     data : updatedWorkData,
