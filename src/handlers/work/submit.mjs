@@ -6,7 +6,7 @@ import { determineOriginAndMain, verifyBranchInSync, verifyClean, workBranchName
 import { determineGitHubLogin } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
-import { cleanupQAFiles, runQA } from '@liquid-labs/liq-qa-lib'
+import { cleanupQAFiles, runQA, saveQAFiles } from '@liquid-labs/liq-qa-lib'
 import { Octocache } from '@liquid-labs/octocache'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
@@ -171,6 +171,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     const projectPath = fsPath.join(app.liq.playground(), org, project)
 
     runQA({ projectPath, reporter })
+    saveQAFiles({ projectPath, reporter })
     cleanupQAFiles({ projectPath, reporter })
 
     const octocache = new Octocache({ authToken })
