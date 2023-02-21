@@ -214,7 +214,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
         body += '\n\nRelated projects: '
         body += otherProjects.map(({ name: otherProjFQN }) =>
           `[${otherProjFQN}](${GH_BASE_URL}/${otherProjFQN}) `
-              + `([PRs](${GH_BASE_URL}/${otherProjFQN}/pulls?isq=%3Aopen+head%3A${head.replace(':', '%3A')}))`
+              + `([PRs](${GH_BASE_URL}/${otherProjFQN}/pulls?q=head%3A${encodeURIComponent(head)}))`
         )
           .join(', ')
       }
