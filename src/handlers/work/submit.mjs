@@ -234,7 +234,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   }
 
   httpSmartResponse({
-    msg : reporter.taskReport().join('\n'),
+    msg : reporter.taskReport.join('\n'),
     req,
     res
   })
