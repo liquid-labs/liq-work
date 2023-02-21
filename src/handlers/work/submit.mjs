@@ -148,7 +148,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
 
   // first, we check readiness
   for (const { name: projectFQN, private: isPrivate } of projects) {
-    repoter.push(`Checking status of <em>${projectFQN}<rst>...`)
+    reporter.push(`Checking status of <em>${projectFQN}<rst>...`)
     const [org, project] = projectFQN.split('/')
     const projectPath = fsPath.join(app.liq.playground(), org, project)
 
