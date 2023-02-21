@@ -131,7 +131,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
       arr.splice(i, 1, project)
     })
   }
-  // projects is now an array of project entries
+  // projects is now an array of project entries ({ name, private })
 
   // we can now check if we are closing issues and which issues to close
   // because we de-duped, the lists would have equiv length our working set named all
@@ -214,7 +214,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
         body += '\n\nRelated projects: '
         body += otherProjects.map(({ name: otherProjFQN }) =>
           `[${otherProjFQN}](${GH_BASE_URL}/${otherProjFQN}) `
-              + `([PRs](${GH_BASE_URL}/${otherProjFQN}/pulls?q=head%3A${encodeURIComponent(head)}))`
+              + `([PRs](${GH_BASE_URL}/${otherProjFQN}/pulls?q=head%3A${encodeURIComponent(workBranch)}))`
         )
           .join(', ')
       }
