@@ -113,7 +113,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
 
   // determine assignee(s)
   if (assignees === undefined) {
-    assignees = [ (await determineGitHubLogin({ authToken })).login ]
+    assignees = [(await determineGitHubLogin({ authToken })).login]
   }
 
   // determine the projects to submit
@@ -165,6 +165,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
 
   for (const { name: projectFQN, private: isPrivate } of projects) {
     const [org, project] = projectFQN.split('/')
+    const projectPath = fsPath.join(app.liq.playground(), org, project)
 
     const octocache = new Octocache({ authToken })
 
@@ -177,9 +178,10 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
       head = `${ghUser.login}:${workBranch}`
     }
 
-    const openPRs = octocache.paginate(`GET /repos/${org}/${project}/pulls`, { head, state: 'open' })
+    const openPRs = octocache.paginate(`GET /repos/${org}/${project}/pulls`, { head, state : 'open' })
     if (openPRs.length > 0) { // really, should (and I think can) only be one, but this is the better question anyway
       reporter.push(`Project <em>${projectFQN}<rst> branch <code>${workBranch}<rst> PR <bold>extant and open<rst>; pushing updates...`)
+      let remote
       if (isPrivate === true) { ([remote] = determineOriginAndMain({ projectPath, reporter })) }
       else { remote = WORKSPACE }
       tryExec(`cd '${projectPath}' && git push ${remote} ${workBranch}`)
@@ -203,7 +205,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
       if (projects.length > 1) {
         const otherProjects = projects.filter((p) => p.name !== projectFQN)
         body += '\n\nRelated projects: '
-        for (const { name: otherProjFQN } of projects) {
+        for (const { name: otherProjFQN } of otherProjects) {
           body += `[${otherProjFQN}](${GH_BASE_URL}/${otherProjFQN}) `
             + `([PRs](${GH_BASE_URL}/${otherProjFQN}/pulls?isq=%3Aopen+head%3A${head.replace(':', '%3A')}))`
         }

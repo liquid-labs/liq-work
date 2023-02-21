@@ -1,9 +1,7 @@
 import createError from 'http-errors'
 
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
-import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 
-import { commonIssuesParameters } from '../_lib/common-issues-parameters'
 import { WorkDB } from '../_lib/work-db'
 
 const help = {
@@ -17,10 +15,10 @@ const path = ['work', ':workKey', 'projects', 'remove']
 
 const parameters = [
   {
-    name: 'projects',
-    isMultivalue: true,
-    descirption: 'Specifies the project to remove from the unit of work. May be specified multiple times.',
-    optionsFunc: ({ app, workKey }) => {
+    name         : 'projects',
+    isMultivalue : true,
+    descirption  : 'Specifies the project to remove from the unit of work. May be specified multiple times.',
+    optionsFunc  : ({ app, workKey }) => {
       const workDB = new WorkDB({ app })
       return workDB.getData(workKey).projects.map((p) => p.name)
     }
@@ -29,7 +27,7 @@ const parameters = [
 Object.freeze(parameters)
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
-  let { projects, workKey } = req.vars
+  const { projects, workKey } = req.vars
 
   const workDB = new WorkDB({ app, reporter })
   const workData = workDB.getData(workKey)
@@ -38,7 +36,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   }
   // TODO: do some checking... https://github.com/liquid-labs/liq-work/issues/7
 
-  const updatedWorkData = workDB.removeProjects({ workKey, issues })
+  const updatedWorkData = workDB.removeProjects({ workKey, projects })
 
   httpSmartResponse({
     data : updatedWorkData,

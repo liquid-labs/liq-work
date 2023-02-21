@@ -55,7 +55,6 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
 
   const credDB = new CredentialsDB({ app, cache, reporter })
   const authToken = credDB.getToken(purposes.GITHUB_API)
-  console.log('issues:', issues) // DEBUG
 
   await releaseIssues({ authToken, comment, issues, noUnassign, noUnlabel, reporter })
 

@@ -1,9 +1,5 @@
-import createError from 'http-errors'
-
-import { claimIssues, verifyIssuesAvailable } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
-import { Octocache } from '@liquid-labs/octocache'
 
 import { WorkDB } from '../_lib/work-db'
 
@@ -18,10 +14,10 @@ const path = ['work', ':workKey', 'projects', 'add']
 
 const parameters = [
   {
-    name: 'projects',
-    isMultivalue: true,
-    description: 'The project to add to the unit of work. May be specify multiple projects.',
-    optionsFunc: ({ app, cache, model, workKey }) => {
+    name         : 'projects',
+    isMultivalue : true,
+    description  : 'The project to add to the unit of work. May be specify multiple projects.',
+    optionsFunc  : ({ app, cache, model, workKey }) => {
       const credDB = new CredentialsDB({ app, cache })
       const authToken = credDB.getToken(purposes.GITHUB_API)
       const workDB = new WorkDB({ app, authToken })
@@ -34,17 +30,21 @@ const parameters = [
 Object.freeze(parameters)
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
-  let { projects, workKey } = req.vars
+  reporter = reporter.isolate()
+
+  const { projects, workKey } = req.vars
 
   const credDB = new CredentialsDB({ app, cache })
   const authToken = credDB.getToken(purposes.GITHUB_API)
   const workDB = new WorkDB({ app, authToken, reporter })
 
-  const updatedWorkData = await workDB.addProjects({ authToken, projects, workKey })
+  const updatedWorkData = await workDB.addProjects({ authToken, projects, reporter, workKey })
 
   httpSmartResponse({
     data : updatedWorkData,
-    msg  : `Added projects '<em>${projects.join("<rst>', '<em>")}<rst>' to unit of work '<em>${workKey}<rst>'.`,
+    msg  : `${reporter.taskReport.join('\n')}
+
+Added projects '<em>${projects.join("<rst>', '<em>")}<rst>' to unit of work '<em>${workKey}<rst>'.`,
     req,
     res
   })
