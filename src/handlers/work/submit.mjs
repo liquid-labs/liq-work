@@ -6,7 +6,7 @@ import { determineOriginAndMain, verifyBranchInSync, verifyClean, workBranchName
 import { determineGitHubLogin } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
-import { runQA } from '@liquid-labs/liq-qa-lib'
+import { cleanupQAFiles, runQA } from '@liquid-labs/liq-qa-lib'
 import { Octocache } from '@liquid-labs/octocache'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
@@ -209,10 +209,11 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
       if (projects.length > 1) {
         const otherProjects = projects.filter((p) => p.name !== projectFQN)
         body += '\n\nRelated projects: '
-        for (const { name: otherProjFQN } of otherProjects) {
-          body += `[${otherProjFQN}](${GH_BASE_URL}/${otherProjFQN}) `
-            + `([PRs](${GH_BASE_URL}/${otherProjFQN}/pulls?isq=%3Aopen+head%3A${head.replace(':', '%3A')}))`
-        }
+        body += otherProjects.map(({ name: otherProjFQN }) =>
+          `[${otherProjFQN}](${GH_BASE_URL}/${otherProjFQN}) `
+              + `([PRs](${GH_BASE_URL}/${otherProjFQN}/pulls?isq=%3Aopen+head%3A${head.replace(':', '%3A')}))`
+        )
+          .join(', ')
       }
 
       const repoData = await octocache.request(`GET /repos/${org}/${project}`)
