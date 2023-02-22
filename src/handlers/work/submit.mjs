@@ -146,7 +146,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   // inputs have ben normalized we are now ready to start verifying the repo state
   const workBranch = workBranchName({ primaryIssueID : workUnit.issues[0].id })
 
-  const setRemote = ({ isPrivate }) => {
+  const setRemote = ({ isPrivate, projectPath }) => {
     let remote
     if (isPrivate === true) { ([remote] = determineOriginAndMain({ projectPath, reporter })) }
     else { remote = WORKSPACE }
@@ -160,7 +160,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     const [org, project] = projectFQN.split('/')
     const projectPath = fsPath.join(app.liq.playground(), org, project)
 
-    const remote = setRemote({ isPrivate })
+    const remote = setRemote({ isPrivate, projectPath })
 
     if (dirtyOK !== true) {
       verifyClean({ projectPath, reporter })
@@ -180,7 +180,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     saveQAFiles({ projectPath, reporter })
     cleanupQAFiles({ projectPath, reporter })
     // now we need to push the updates to the remote
-    const remote = setRemote({ isPrivate })
+    const remote = setRemote({ isPrivate, projectPath })
     tryExec(`cd '${projectPath}' && git push ${remote} ${workBranch}`)
 
     const octocache = new Octocache({ authToken })
