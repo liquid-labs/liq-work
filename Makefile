@@ -1,6 +1,7 @@
 ifneq (grouped-target, $(findstring grouped-target,$(.FEATURES)))
 ERROR:=$(error This version of make does not support required 'grouped-target' (4.3+).)
 endif
+.PRECIOUS: last-lint.txt last-text.txt
 .DELETE_ON_ERROR:
 .PHONY: all build lint lint-fix qa test
 

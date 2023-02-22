@@ -109,7 +109,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const workUnit = workDB.getData(workKey)
   if (workUnit === undefined) throw createError.NotFound(`No such active unit of work '${workKey}' found.`)
 
-  const { dirtyOK, noPush } = req.vars
+  const { dirtyOK, noPush = false } = req.vars
   let { assignees, closes, closeTarget, noCloses, projects } = req.vars
 
   // determine assignee(s)
@@ -146,15 +146,21 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   // inputs have ben normalized we are now ready to start verifying the repo state
   const workBranch = workBranchName({ primaryIssueID : workUnit.issues[0].id })
 
+  const setRemote = ({ isPrivate, projectPath }) => {
+    let remote
+    if (isPrivate === true) { ([remote] = determineOriginAndMain({ projectPath, reporter })) }
+    else { remote = WORKSPACE }
+
+    return remote
+  }
+
   // first, we check readiness
   for (const { name: projectFQN, private: isPrivate } of projects) {
     reporter.push(`Checking status of <em>${projectFQN}<rst>...`)
     const [org, project] = projectFQN.split('/')
     const projectPath = fsPath.join(app.liq.playground(), org, project)
 
-    let remote
-    if (isPrivate === true) { ([remote] = determineOriginAndMain({ projectPath, reporter })) }
-    else { remote = WORKSPACE }
+    const remote = setRemote({ isPrivate, projectPath })
 
     if (dirtyOK !== true) {
       verifyClean({ projectPath, reporter })
@@ -173,6 +179,9 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     runQA({ projectPath, reporter })
     saveQAFiles({ projectPath, reporter })
     cleanupQAFiles({ projectPath, reporter })
+    // now we need to push the updates to the remote
+    const remote = setRemote({ isPrivate, projectPath })
+    tryExec(`cd '${projectPath}' && git push ${remote} ${workBranch}`)
 
     const octocache = new Octocache({ authToken })
 
@@ -185,7 +194,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
       head = `${ghUser.login}:${workBranch}`
     }
 
-    const openPRs = octocache.paginate(`GET /repos/${org}/${project}/pulls`, { head, state : 'open' })
+    const openPRs = await octocache.paginate(`GET /repos/${org}/${project}/pulls`, { head, state : 'open' })
     if (openPRs.length > 0) { // really, should (and I think can) only be one, but this is the better question anyway
       reporter.push(`Project <em>${projectFQN}<rst> branch <code>${workBranch}<rst> PR <bold>extant and open<rst>; pushing updates...`)
       let remote

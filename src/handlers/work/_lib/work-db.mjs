@@ -149,7 +149,6 @@ const WorkDB = class WorkDB {
     const now = new Date()
 
     const workBranch = workBranchName({ primaryIssueID : issues[0] })
-    await this.#setupWorkBranches({ authToken : this.#authToken, projects, reporter, workBranch })
 
     const initiator = determineAuthorEmail()
     if (description === undefined) {
@@ -194,7 +193,7 @@ const WorkDB = class WorkDB {
       workBranch
     }
 
-    this.addProjects({ projects, reporter }) // this will save
+    await this.addProjects({ projects, reporter, workKey : workBranch }) // this will save
 
     return structuredClone(this.#data[workBranch])
   } // end 'startWork'

@@ -35,7 +35,6 @@ Object.freeze(parameters)
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
   let { assignee, comment, issues, noAutoAssign = false, projects } = req.vars
-
   // normalize issues as '<org>/<project>/<issue number>'
   issues = issues.map((i) => i.match(/^\d+$/) ? projects[0] + '/' + i : i)
 
