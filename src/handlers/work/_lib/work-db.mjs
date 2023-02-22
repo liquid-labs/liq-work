@@ -193,7 +193,7 @@ const WorkDB = class WorkDB {
       workBranch
     }
 
-    await this.addProjects({ projects, reporter, workKey: workBranch }) // this will save
+    await this.addProjects({ projects, reporter, workKey : workBranch }) // this will save
 
     return structuredClone(this.#data[workBranch])
   } // end 'startWork'
