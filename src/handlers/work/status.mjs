@@ -132,6 +132,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     if (closableCount === workUnit.projects.length) {
       // then all issues are closed and all changes appear merged
       workDB.closeProject(workKey)
+      report.isClosed = true
     }
   }
 
