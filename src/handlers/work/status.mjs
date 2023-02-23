@@ -135,14 +135,19 @@ const generatProjectsReport = async({
     const hasRemoteBranch = hasBranch({ branch : remoteBranch, projectPath, reporter })
 
     if (updateLocal === true) {
+      // TODO: provide a 'workTree' option which would allow us to keep the main work tree (current branch) in place; would want to make that smart and use the main branch where we can
       const currBranch = determineCurrentBranch({ projectPath })
       reporter.push(`Updating local <em>${main}<rst> branch from <em>${origin}/${main}<rst>...`)
-      tryExec(`cd '${projectPath}' && git checkout ${main} && git merge ${origin}/${main}`)
-      if (hasLocalBranch && hasRemoteBranch) {
-        reporter.push(`Updating local <em>${workKey}<rst> branch from <em>${remote}/${main}<rst>...`)
-        tryExec(`cd '${projectPath}' && git checkout ${workKey} && git merge ${remote}/${workKey}`)
+      try {
+        tryExec(`cd '${projectPath}' && git checkout ${main} && git merge ${origin}/${main}`)
+        if (hasLocalBranch && hasRemoteBranch) {
+          reporter.push(`Updating local <em>${workKey}<rst> branch from <em>${remote}/${main}<rst>...`)
+          tryExec(`cd '${projectPath}' && git checkout ${workKey} && git merge ${remote}/${workKey}`)
+        }
       }
-      tryExec(`cd '${projectPath}' && git checkout ${currBranch}`)
+      finally {
+        tryExec(`cd '${projectPath}' && git checkout ${currBranch}`)
+      }
     }
 
     // local changes reflected in remote master master?
