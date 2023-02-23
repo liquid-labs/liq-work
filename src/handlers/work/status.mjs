@@ -2,12 +2,7 @@ import * as fsPath from 'node:path'
 
 import createError from 'http-errors'
 
-import {
-  compareLocalAndRemoteBranch,
-  determineOriginAndMain,
-  hasBranch,
-  workBranchName
-} from '@liquid-labs/git-toolkit'
+import { compareLocalAndRemoteBranch, determineOriginAndMain, hasBranch } from '@liquid-labs/git-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 import { Octocache } from '@liquid-labs/octocache'
@@ -28,9 +23,9 @@ const method = 'get'
 const path = ['work', ':workKey', 'status']
 const parameters = [
   {
-    name : 'allPulls',
-    isBoolean : true,
-    description: 'Will include all related pull requests in the report, rather than just merged or open PRs.'
+    name        : 'allPulls',
+    isBoolean   : true,
+    description : 'Will include all related pull requests in the report, rather than just merged or open PRs.'
   },
   {
     name        : 'noFetch',
@@ -51,8 +46,8 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const workDB = new WorkDB({ app, authToken, reporter })
 
   const report = {
-    issues: {},
-    projects: {}
+    issues   : {},
+    projects : {}
   }
 
   const workUnit = workDB.getData(workKey)
@@ -60,8 +55,12 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     throw createError.NotFound(`No such unit of work '${workKey}' found in Work DB.`)
   }
 
-  const workBranch = workBranchName({ primaryIssueID : workUnit.issues[0].id })
+  await generatProjectsReport({ allPulls, app, octocache, noFetch, report, reporter, workKey, workUnit })
 
+  httpSmartResponse({ data : report, msg : reporter.taskReport.join('\n'), req, res })
+}
+
+const generatProjectsReport = async({ allPulls, app, octocache, noFetch, report, reporter, workKey, workUnit }) => {
   for (const { name: projectFQN, private: isPrivate } of workUnit.projects) {
     reporter.push(`Checking status of <em>${projectFQN}<rst>...`)
 
@@ -89,8 +88,8 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     }
 
     // we will need this; they are exposed later so that the object has the key ordering we want
-    const hasLocalBranch = hasBranch({ branch : workBranch, projectPath, reporter })
-    const remoteBranch = `${remote}/${workBranch}`
+    const hasLocalBranch = hasBranch({ branch : workKey, projectPath, reporter })
+    const remoteBranch = `${remote}/${workKey}`
     const hasRemoteBranch = hasBranch({ branch : remoteBranch, projectPath, reporter })
 
     // local changes reflected in remote master master?
@@ -107,11 +106,11 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     }
     if (hasRemoteBranch) {
       reporter.push(`Analyzing merge state of remote work branch ${workKey}...`)
-      const localMainContainsRemoteChanges = 
+      const localMainContainsRemoteChanges =
         tryExec(`cd '${projectPath}' && git branch -a --contains ${remote}/${workKey} ${main}`).stdout.length > 0
       const remoteMainContainsRemoteChanges =
         tryExec(`cd '${projectPath}' && git branch -a --contains ${remote}/${workKey} ${remote}/${main}`)
-        .stdout.length > 0
+          .stdout.length > 0
       projectStatus.remoteChanges = {
         mergedToLocalMain  : localMainContainsRemoteChanges,
         mergedToRemoteMain : remoteMainContainsRemoteChanges
@@ -120,7 +119,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
 
     // analyze PRs
     projectStatus.pullRequests = []
-    let reportPRs = await octocache.paginate(`GET /repos/${projectFQN}/pulls`, { head : workBranch, state : 'all' })
+    let reportPRs = await octocache.paginate(`GET /repos/${projectFQN}/pulls`, { head : workKey, state : 'all' })
     const prCount = reportPRs.length
     projectStatus.totalPRs = prCount
     if (allPulls !== true) {
@@ -137,12 +136,10 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     workBranchReport.localBranchFound = hasLocalBranch
     workBranchReport.remoteBranchFound = hasRemoteBranch
     if (hasLocalBranch === true && hasRemoteBranch === true) {
-      const syncStatus = compareLocalAndRemoteBranch({ branch : workBranch, remote, projectPath })
+      const syncStatus = compareLocalAndRemoteBranch({ branch : workKey, remote, projectPath })
       workBranchReport.syncStatus = syncStatus
     }
   }
-
-  httpSmartResponse({ data : report, msg : reporter.taskReport.join('\n'), req, res })
 }
 
 export { func, help, parameters, path, method }
