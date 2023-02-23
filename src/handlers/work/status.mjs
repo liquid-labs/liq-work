@@ -14,7 +14,11 @@ import { WorkDB } from './_lib/work-db'
 const help = {
   name        : 'Work status',
   summary     : 'Reports on the status of a unit of work.',
-  description : `Checks the status of a unit of work branches, issues, and pull requests.
+  description : `Checks the status of a unit of work branches, issues, and pull requests. By default, the local copy of remote main branches will be updated in order to provide up-to-date information on the status. This can be supressed with the \`noFetch\` option.
+
+The resulting report contains two main sections, 'issues' and 'projects'. The issues section indicates the number, state (open or closed), and URL for each issue.
+
+The projects section breaks down pull requests, branch status, and merge status for each project. By default, only open or merged pull requests are included, although a count of all related PRs is included as well. To get details for all pull requests, use the \'allPulls\` option.
 
 See also 'work detail' for basic static information.`
 }
@@ -55,9 +59,26 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     throw createError.NotFound(`No such unit of work '${workKey}' found in Work DB.`)
   }
 
-  await generatProjectsReport({ allPulls, app, octocache, noFetch, report, reporter, workKey, workUnit })
+  await Promise.all([
+    generateIssuesReport({ octocache, report, reporter, workKey, workUnit }),
+    generatProjectsReport({ allPulls, app, octocache, noFetch, report, reporter, workKey, workUnit })
+  ])
 
   httpSmartResponse({ data : report, msg : reporter.taskReport.join('\n'), req, res })
+}
+
+const generateIssuesReport = async({ octocache, report, reporter, workKey, workUnit }) => {
+  const asyncData = []
+  for (const { id: issueRef } of workUnit.issues) {
+    const [ owner, repo, number ] = issueRef.split('/')
+    asyncData.push(octocache.request(`GET /repos/${owner}/${repo}/issues/${number}`))
+  }
+  const issueData = await Promise.all(asyncData)
+
+  for (const { number, state, html_url: url } of issueData) {
+    const issueRef = url.replace(new RegExp('.+/([^/]+/[^/]+/)issues/(\d+)/'), '$1$2')
+    report.issues[issueRef] = { number, state, url }
+  }
 }
 
 const generatProjectsReport = async({ allPulls, app, octocache, noFetch, report, reporter, workKey, workUnit }) => {
@@ -125,7 +146,7 @@ const generatProjectsReport = async({ allPulls, app, octocache, noFetch, report,
     if (allPulls !== true) {
       reportPRs = reportPRs.filter((pr) => pr.merged_at || pr.state === 'open')
     }
-    for (const { number, merged_at: mergedAt, state, url } of reportPRs) {
+    for (const { number, merged_at: mergedAt, state, html_url: url } of reportPRs) {
       projectStatus.pullRequests.push({ number, state, merged : !!mergedAt, url })
     }
 
