@@ -84,9 +84,13 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
       if (statusReport.localChanges?.mergedToRemoteMain === true) {
         const [org, project] = projectFQN.split('/')
         const projectPath = fsPath.join(app.liq.playground(), org, project)
-        const [, main] = determineOriginAndMain({ noFetch, projectPath, reporter })
-
-        tryExec(`cd '${projectPath}' && git checkout ${main} && git branch -d ${workKey}`)
+        const currBranch = determineCurrentBranch({ projectPath })
+        if (currBranch === workKey) {
+          const [, main] = determineOriginAndMain({ noFetch, projectPath, reporter })
+          reporter.push(`Switching current branch from '${workKey}' to '${main}'...`)
+          tryExec(`cd '${projectPath}' && git checkout ${main}`)          
+        }
+        tryExec(`cd '${projectPath}' && git branch -d ${workKey}`)
         statusReport.workBranch.localBranchRemoved = true
       }
     }
