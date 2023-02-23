@@ -37,6 +37,11 @@ const parameters = [
     description : 'Will include all related pull requests in the report, rather than just merged or open PRs.'
   },
   {
+    name        : 'closeWork',
+    isBoolean   : true,
+    description : 'Will close the unit of work if 1) all issues are closed, 2) there is at least one merged PR, and 3) there are not any un-merged local work branch changes. The final criteria is only relevant if there is a local work branch present.'
+  },
+  {
     name        : 'deleteBranches',
     isBoolean   : true,
     description : 'Will delete local work branches and, if on local work branch, switch the current branch to the main branch if 1) all issues are closed and 2) all local work branch changes are reflected in the remote main branch.'
@@ -55,7 +60,14 @@ const parameters = [
 Object.freeze(parameters)
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
-  const { allPulls = false, deleteBranches = false, noFetch = false, updateLocal = false, workKey } = req.vars
+  const {
+    allPulls = false,
+    closeWork = false,
+    deleteBranches = false,
+    noFetch = false,
+    updateLocal = false,
+    workKey
+  } = req.vars
 
   const credDB = new CredentialsDB({ app, cache })
   const authToken = credDB.getToken(purposes.GITHUB_API)
@@ -76,27 +88,61 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
 
   await Promise.all([
     generateIssuesReport({ octocache, report, reporter, workKey, workUnit }),
-    generatProjectsReport({ allPulls, app, octocache, noFetch, report, reporter, updateLocal, workKey, workUnit })
+    generateProjectsReport({ allPulls, app, octocache, noFetch, report, reporter, updateLocal, workKey, workUnit })
   ])
 
   if (deleteBranches === true && !Object.values(report.issues).some((i) => i.state !== 'closed')) {
     for (const [projectFQN, statusReport] of Object.entries(report.projects)) {
-      if (statusReport.localChanges?.mergedToRemoteMain === true) {
-        const [org, project] = projectFQN.split('/')
-        const projectPath = fsPath.join(app.liq.playground(), org, project)
+      reporter.push(`Considering deleting work branch in project ${projectFQN}...`)
+      if (statusReport.workBranch?.localBranchFound === true
+          && statusReport.localChanges?.mergedToRemoteMain === true) {
+        const { projectPath } = determinePathHelper({ app, projectFQN })
         const currBranch = determineCurrentBranch({ projectPath })
         if (currBranch === workKey) {
           const [, main] = determineOriginAndMain({ noFetch, projectPath, reporter })
-          reporter.push(`Switching current branch from '${workKey}' to '${main}'...`)
-          tryExec(`cd '${projectPath}' && git checkout ${main}`)          
+          reporter.push(`Switching current branch from '${workKey}' to '${main}' before deleting '${workKey}'...`)
+          tryExec(`cd '${projectPath}' && git checkout ${main}`,
+            { msg : `Cannot switch from branch '${workKey}' to '${main}' in order to delete branch '${workKey}'. You may need to 'commit' or 'stash' your work.` })
         }
         tryExec(`cd '${projectPath}' && git branch -d ${workKey}`)
         statusReport.workBranch.localBranchRemoved = true
       }
+      else {
+        reporter.push(`  skipping; local work branch ${statusReport.workBranch?.localBranchFound !== true ? 'not found' : 'not merged'}.`)
+      }
+    }
+  }
+  else if (deleteBranches === true) {
+    reporter.push('Skipping consideration of branch deletions due to open issues.')
+  }
+
+  if (closeWork === true && !Object.values(report.issues).some((i) => i.state !== 'closed')) {
+    reporter.push('Considering closing work...')
+    let closableCount = 0
+    for (const [projectFQN, projectStatus] of Object.entries(report.projects)) {
+      const hasMergedPR = projectStatus.pullRequests.some((pr) => pr.merged === true)
+      if (hasMergedPR && projectStatus.workBranch.syncStatus !== 'local ahead') { // TODO: 'local ahead' really needs to be a constant
+        closableCount += 1
+      }
+      else {
+        reporter.push(`  <warn>Cannot close work<rst> due to ${!hasMergedPR ? 'no evidence of a merged PR' : 'un-merged local work branch changes'} in project <em>${projectFQN}<rst>.`)
+        break // no need for further analysis
+      }
+    }
+    if (closableCount === workUnit.projects.length) {
+      // then all issues are closed and all changes appear merged
+      workDB.closeProject(workKey)
     }
   }
 
   httpSmartResponse({ data : report, msg : reporter.taskReport.join('\n'), req, res })
+}
+
+const determinePathHelper = ({ app, projectFQN }) => {
+  const [org, project] = projectFQN.split('/')
+  const projectPath = fsPath.join(app.liq.playground(), org, project)
+
+  return { org, project, projectPath }
 }
 
 const generateIssuesReport = async({ octocache, report, reporter, workKey, workUnit }) => {
@@ -114,7 +160,7 @@ const generateIssuesReport = async({ octocache, report, reporter, workKey, workU
   }
 }
 
-const generatProjectsReport = async({
+const generateProjectsReport = async({
   allPulls,
   app,
   octocache,
@@ -130,8 +176,7 @@ const generatProjectsReport = async({
 
     const projectStatus = {}
     report.projects[projectFQN] = projectStatus
-    const [org, project] = projectFQN.split('/')
-    const projectPath = fsPath.join(app.liq.playground(), org, project)
+    const { projectPath } = determinePathHelper({ app, projectFQN })
 
     const [origin, main] = determineOriginAndMain({ noFetch, projectPath, reporter })
     let remote
@@ -161,14 +206,19 @@ const generatProjectsReport = async({
       const currBranch = determineCurrentBranch({ projectPath })
       reporter.push(`Updating local <em>${main}<rst> branch from <em>${origin}/${main}<rst>...`)
       try {
-        tryExec(`cd '${projectPath}' && git checkout ${main} && git merge ${origin}/${main}`)
+        tryExec(`cd '${projectPath}' && git checkout ${main} && git merge ${origin}/${main}`,
+          // 'branch' is after the branch name here because it reads a little better for the 'special' default branch,
+          // I think.
+          { msg : `Failed attempt to switch ${projectFQN} to ${main} branch and merge ${origin}/${main}. You may need to 'commit' or 'stash' your work.` })
         if (hasLocalBranch && hasRemoteBranch) {
           reporter.push(`Updating local <em>${workKey}<rst> branch from <em>${remote}/${main}<rst>...`)
-          tryExec(`cd '${projectPath}' && git checkout ${workKey} && git merge ${remote}/${workKey}`)
+          tryExec(`cd '${projectPath}' && git checkout ${workKey} && git merge ${remote}/${workKey}`,
+            { msg : `Failed attempt to switch ${projectFQN} to branch ${workKey} and merge ${remote}/${workKey}. You may need to 'commit' or 'stash' your work.` })
         }
       }
       finally {
-        tryExec(`cd '${projectPath}' && git checkout ${currBranch}`)
+        tryExec(`cd '${projectPath}' && git checkout ${currBranch}`,
+          { msg : `Very unexpectedly failed to restore ${projectFQN} to branch ${currBranch}.` })
       }
     }
 
