@@ -37,6 +37,11 @@ const parameters = [
     description : 'Will include all related pull requests in the report, rather than just merged or open PRs.'
   },
   {
+    name        : 'deleteBranches',
+    isBoolean   : true,
+    description : 'Will delete local work branches and, if on local work branch, switch the current branch to the main branch if 1) all issues are closed and 2) all local work branch changes are reflected in the remote main branch.'
+  },
+  {
     name        : 'noFetch',
     isBoolean   : true,
     description : 'Supresses default behavior of fetching remote changes before comparing local and remote branches.'
@@ -50,7 +55,7 @@ const parameters = [
 Object.freeze(parameters)
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
-  const { allPulls = false, noFetch = false, updateLocal = false, workKey } = req.vars
+  const { allPulls = false, deleteBranches = false, noFetch = false, updateLocal = false, workKey } = req.vars
 
   const credDB = new CredentialsDB({ app, cache })
   const authToken = credDB.getToken(purposes.GITHUB_API)
@@ -74,6 +79,19 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     generatProjectsReport({ allPulls, app, octocache, noFetch, report, reporter, updateLocal, workKey, workUnit })
   ])
 
+  if (deleteBranches === true && !Object.values(report.issues).some((i) => i.state !== 'closed')) {
+    for (const [projectFQN, statusReport] of Object.entries(report.projects)) {
+      if (statusReport.localChanges?.mergedToRemoteMain === true) {
+        const [org, project] = projectFQN.split('/')
+        const projectPath = fsPath.join(app.liq.playground(), org, project)
+        const [, main] = determineOriginAndMain({ noFetch, projectPath, reporter })
+
+        tryExec(`cd '${projectPath}' && git checkout ${main} && git branch -d ${workKey}`)
+        statusReport.workBranch.localBranchRemoved = true
+      }
+    }
+  }
+
   httpSmartResponse({ data : report, msg : reporter.taskReport.join('\n'), req, res })
 }
 
@@ -87,7 +105,7 @@ const generateIssuesReport = async({ octocache, report, reporter, workKey, workU
 
   for (const { number, state, html_url: url } of issueData) {
     // eslint-disable-next-line prefer-regex-literals
-    const issueRef = url.replace(new RegExp('.+/([^/]+/[^/]+/)issues/(\\d+)/'), '$1$2')
+    const issueRef = url.replace(new RegExp('.+/([^/]+/[^/]+/)issues/(\\d+)'), '$1$2')
     report.issues[issueRef] = { number, state, url }
   }
 }
