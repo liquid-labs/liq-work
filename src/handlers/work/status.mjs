@@ -2,7 +2,12 @@ import * as fsPath from 'node:path'
 
 import createError from 'http-errors'
 
-import { compareLocalAndRemoteBranch, determineOriginAndMain, hasBranch } from '@liquid-labs/git-toolkit'
+import {
+  compareLocalAndRemoteBranch,
+  determineCurrentBranch,
+  determineOriginAndMain,
+  hasBranch
+} from '@liquid-labs/git-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 import { Octocache } from '@liquid-labs/octocache'
@@ -18,7 +23,7 @@ const help = {
 
 The resulting report contains two main sections, 'issues' and 'projects'. The issues section indicates the number, state (open or closed), and URL for each issue.
 
-The projects section breaks down pull requests, branch status, and merge status for each project. By default, only open or merged pull requests are included, although a count of all related PRs is included as well. To get details for all pull requests, use the \'allPulls\` option.
+The projects section breaks down pull requests, branch status, and merge status for each project. By default, only open or merged pull requests are included, although a count of all related PRs is included as well. To get details for all pull requests, use the \`allPulls\` option.
 
 See also 'work detail' for basic static information.`
 }
@@ -35,12 +40,17 @@ const parameters = [
     name        : 'noFetch',
     isBoolean   : true,
     description : 'Supresses default behavior of fetching remote changes before comparing local and remote branches.'
+  },
+  {
+    name        : 'updateLocal',
+    isBoolean   : true,
+    description : 'Will update local main and working branches with changes from the respective remote branch counterparts prior to analysis.'
   }
 ]
 Object.freeze(parameters)
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
-  const { allPulls = false, noFetch = false, workKey } = req.vars
+  const { allPulls = false, noFetch = false, updateLocal = false, workKey } = req.vars
 
   const credDB = new CredentialsDB({ app, cache })
   const authToken = credDB.getToken(purposes.GITHUB_API)
@@ -61,7 +71,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
 
   await Promise.all([
     generateIssuesReport({ octocache, report, reporter, workKey, workUnit }),
-    generatProjectsReport({ allPulls, app, octocache, noFetch, report, reporter, workKey, workUnit })
+    generatProjectsReport({ allPulls, app, octocache, noFetch, report, reporter, updateLocal, workKey, workUnit })
   ])
 
   httpSmartResponse({ data : report, msg : reporter.taskReport.join('\n'), req, res })
@@ -70,18 +80,29 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
 const generateIssuesReport = async({ octocache, report, reporter, workKey, workUnit }) => {
   const asyncData = []
   for (const { id: issueRef } of workUnit.issues) {
-    const [ owner, repo, number ] = issueRef.split('/')
+    const [owner, repo, number] = issueRef.split('/')
     asyncData.push(octocache.request(`GET /repos/${owner}/${repo}/issues/${number}`))
   }
   const issueData = await Promise.all(asyncData)
 
   for (const { number, state, html_url: url } of issueData) {
-    const issueRef = url.replace(new RegExp('.+/([^/]+/[^/]+/)issues/(\d+)/'), '$1$2')
+    // eslint-disable-next-line prefer-regex-literals
+    const issueRef = url.replace(new RegExp('.+/([^/]+/[^/]+/)issues/(\\d+)/'), '$1$2')
     report.issues[issueRef] = { number, state, url }
   }
 }
 
-const generatProjectsReport = async({ allPulls, app, octocache, noFetch, report, reporter, workKey, workUnit }) => {
+const generatProjectsReport = async({
+  allPulls,
+  app,
+  octocache,
+  noFetch,
+  report,
+  reporter,
+  updateLocal,
+  workKey,
+  workUnit
+}) => {
   for (const { name: projectFQN, private: isPrivate } of workUnit.projects) {
     reporter.push(`Checking status of <em>${projectFQN}<rst>...`)
 
@@ -99,7 +120,7 @@ const generatProjectsReport = async({ allPulls, app, octocache, noFetch, report,
       remote = origin
     }
 
-    // let's make sure we have all the latest info
+    // let's make sure we have all the latest info about the remote branches
     if (noFetch !== true) {
       reporter.push(`Fetching from remote ${remote}...`)
       tryExec(`cd '${projectPath}' && git fetch -a ${remote}`)
@@ -112,6 +133,17 @@ const generatProjectsReport = async({ allPulls, app, octocache, noFetch, report,
     const hasLocalBranch = hasBranch({ branch : workKey, projectPath, reporter })
     const remoteBranch = `${remote}/${workKey}`
     const hasRemoteBranch = hasBranch({ branch : remoteBranch, projectPath, reporter })
+
+    if (updateLocal === true) {
+      const currBranch = determineCurrentBranch({ projectPath })
+      reporter.push(`Updating local <em>${main}<rst> branch from <em>${origin}/${main}<rst>...`)
+      tryExec(`cd '${projectPath}' && git checkout ${main} && git merge ${origin}/${main}`)
+      if (hasLocalBranch && hasRemoteBranch) {
+        reporter.push(`Updating local <em>${workKey}<rst> branch from <em>${remote}/${main}<rst>...`)
+        tryExec(`cd '${projectPath}' && git checkout ${workKey} && git merge ${remote}/${workKey}`)
+      }
+      tryExec(`cd '${projectPath}' && git checkout ${currBranch}`)
+    }
 
     // local changes reflected in remote master master?
     if (hasLocalBranch === true) {
