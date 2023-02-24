@@ -52,6 +52,11 @@ const parameters = [
     description : 'Supresses default behavior of fetching remote changes before comparing local and remote branches.'
   },
   {
+    name : 'update',
+    isBoolean: true,
+    description: 'This is equivalent to calling with `updateLocal`, `deleteBranches`, and `closeWork` true (and `update` will override any explicit value). In other words, "It updates all the stuff." Also, refer to the work update endpoint.' // TODO: how to link??
+  },
+  {
     name        : 'updateLocal',
     isBoolean   : true,
     description : 'Will update local main and working branches with changes from the respective remote branch counterparts prior to analysis.'
@@ -62,12 +67,22 @@ Object.freeze(parameters)
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const {
     allPulls = false,
-    closeWork = false,
-    deleteBranches = false,
     noFetch = false,
-    updateLocal = false,
+    update = false,
     workKey
   } = req.vars
+
+  let {
+    closeWork = false,
+    deleteBranches = false,
+    updateLocal = false
+  } = req.vars
+
+  if (update === true) {
+    closeWork = true
+    deleteBranches = true
+    updateLocal = true
+  }
 
   const credDB = new CredentialsDB({ app, cache })
   const authToken = credDB.getToken(purposes.GITHUB_API)
@@ -134,6 +149,9 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
       workDB.closeWork(workKey)
       report.isClosed = true
     }
+  }
+  else if (closeWork === true) {
+    report.push(`<warn>Cannot close<rst> work because not all issues are closed.`)
   }
 
   httpSmartResponse({ data : report, msg : reporter.taskReport.join('\n'), req, res })
