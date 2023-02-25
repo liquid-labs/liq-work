@@ -153,6 +153,7 @@ const WorkDB = class WorkDB {
     const octocache = new Octocache({ authToken : this.#authToken })
     const now = new Date()
 
+    // Gather basic info
     const workBranch = workBranchName({ primaryIssueID : issues[0] })
 
     const initiator = determineAuthorEmail()
@@ -167,6 +168,7 @@ const WorkDB = class WorkDB {
       this.#reporter?.push(`  got: ${description}`)
     }
 
+    // set up issues data
     const issuesData = []
     for (const issue of issues) {
       const [org, projectBaseName, number] = issue.split('/')
@@ -177,20 +179,11 @@ const WorkDB = class WorkDB {
       })
     }
 
-    const projectsData = []
-    for (const project of projects) {
-      const projectData = await octocache.request(`GET /repos/${project}`)
-      projectsData.push({
-        name    : project,
-        private : projectData.private
-      })
-    }
-
     this.#data[workBranch] = {
       description,
       initiator,
       issues   : issuesData,
-      projects : projectsData,
+      projects : [], // 'projects will be added seperately'
       started  : now.getUTCFullYear() + '-'
         + (now.getUTCMonth() + '').padStart(2, '0') + '-'
         + (now.getUTCDay() + '').padStart(2, '0'),
