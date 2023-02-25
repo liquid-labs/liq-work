@@ -1,6 +1,6 @@
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 
-import { cleanWorkArtifacts } from './_lib/create-work-artifacts'
+import { cleanWorkArtifacts } from './_lib/clean-work-artifacts'
 
 const help = {
   name        : 'Work clean',
