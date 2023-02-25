@@ -1,5 +1,4 @@
-import createError from 'http-errors'
-
+import { determineCurrentBranch } from '@liquid-labs/git-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 
 import { commonCleanParameters } from './_lib/common-clean-parameters'
@@ -65,7 +64,26 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     httpSmartResponse({ msg : msgs.join('\n'), req, res })
   }
   else {
-    throw createError.NotImplemented('Implied work unit clean not yet implemented.')
+    const cwd = req.get('X-CWD')
+    const workKey = determineCurrentBranch({ projectPath : cwd })
+
+    const statusReport = await cleanWorkArtifacts({
+      allPulls : false,
+      app,
+      cache,
+      closeWork,
+      deleteBranches,
+      noFetch,
+      reporter,
+      updateLocal,
+      workKey
+    })
+
+    const msg = statusReport.isClosed === true
+      ? `<bold>Closed<rst> <em>${workKey}<rst>.`
+      : `<bold>Unable<rst> to close <em>${workKey}<rst>`
+
+    httpSmartResponse({ msg, req, res })
   }
 }
 
