@@ -95,7 +95,7 @@ const doClean = ({ app, closeWork, deleteBranches, noFetch, reporter, statusRepo
     }
   }
   else if (closeWork === true) {
-    statusReport.push('<warn>Cannot close<rst> work because not all issues are closed.')
+    reporter.push('<warn>Cannot close<rst> work because not all issues are closed.')
   }
 }
 

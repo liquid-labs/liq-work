@@ -82,7 +82,7 @@ const WorkDB = class WorkDB {
 
   getIssueKeys(workKey) { return this.#data[workKey].issues.map((i) => i.id) }
 
-  getWorkKeys() { return Object.keys(this.#data) }
+  getWorkKeys() { return Object.keys(this.#data).filter((k) => !k.startsWith('_')) }
 
   removeIssues({ issues, workKey }) {
     const workData = this.#data[workKey]
