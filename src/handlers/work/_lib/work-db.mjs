@@ -71,6 +71,11 @@ const WorkDB = class WorkDB {
     return structuredClone(workData)
   }
 
+  closeWork(workKey) {
+    delete this.#data[workKey]
+    this.save()
+  }
+
   getData(workKey) {
     return structuredClone(this.#data[workKey])
   }

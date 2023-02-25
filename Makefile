@@ -46,7 +46,7 @@ last-test.txt: $(LIQ_WORK_TEST_BUILT_FILES) $(LIQ_WORK_TEST_BUILT_DATA)
 test: last-test.txt
 
 # lint rules
-last-lint.txt: $(ALL_SRC_FILES)
+last-lint.txt: $(LIQ_WORK_ALL_FILES)
 	( set -e; set -o pipefail; \
 		JS_LINT_TARGET=$(LIQ_WORK_SRC) $(CATALYST_SCRIPTS) lint | tee last-lint.txt; )
 
