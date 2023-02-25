@@ -1,5 +1,6 @@
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 
+import { commonCleanParameters } from './_lib/common-clean-parameters'
 import { cleanWorkArtifacts } from './_lib/clean-work-artifacts'
 
 const help = {
@@ -12,28 +13,7 @@ See also 'work XXX status' and 'work XXX detail' for basic static information.`
 
 const method = 'put'
 const path = ['work', ':workKey', 'clean']
-const parameters = [
-  {
-    name        : 'noCloseWork',
-    isBoolean   : true,
-    description : 'Keeps the work entry in the active work DB.'
-  },
-  {
-    name        : 'noDeleteBranches',
-    isBoolean   : true,
-    description : 'Leaves work branches in place.'
-  },
-  {
-    name        : 'noFetch',
-    isBoolean   : true,
-    description : 'Supresses default behavior of fetching remote changes before comparing local and remote branches.'
-  },
-  {
-    name        : 'noUpdateLocal',
-    isBoolean   : true,
-    description : 'Supresses update of local tracking branches.'
-  }
-]
+const parameters = [...commonCleanParameters]
 Object.freeze(parameters)
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
