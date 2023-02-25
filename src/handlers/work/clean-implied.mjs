@@ -62,7 +62,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
       msgs.push(msg)
     }
 
-    httpSmartResponse({ msg : msgs.join('/n'), req, res })
+    httpSmartResponse({ msg : msgs.join('\n'), req, res })
   }
   else {
     throw createError.NotImplemented('Implied work unit clean not yet implemented.')
