@@ -36,7 +36,7 @@ const generateIssuesReport = async({ octocache, report, reporter, workKey, workU
   const asyncData = []
   for (const { id: issueRef } of workUnit.issues) {
     const [owner, repo, number] = issueRef.split('/')
-    asyncData.push(octocache.request(`GET /repos/${owner}/${repo}/issues/${number}`, { noCache: true }))
+    asyncData.push(octocache.request(`GET /repos/${owner}/${repo}/issues/${number}`, { noCache : true }))
   }
   const issueData = await Promise.all(asyncData)
 
