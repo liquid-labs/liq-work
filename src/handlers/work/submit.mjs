@@ -61,6 +61,11 @@ const parameters = [
     description : 'When set, will continue even if the local repository is not clean.'
   },
   {
+    name        : 'noBrowse',
+    isBoolean   : true,
+    description : 'Supresses default behavior of opening a browser to the newly created pull request.'
+  },
+  {
     name        : 'noClosed',
     isBoolean   : true,
     description : 'When set, then no issues are closed in a situation where they would otherwise be closed.'
@@ -110,7 +115,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   if (workUnit === undefined) throw createError.NotFound(`No such active unit of work '${workKey}' found.`)
 
   const { dirtyOK, noPush = false } = req.vars
-  let { assignees, closes, closeTarget, noCloses, projects } = req.vars
+  let { assignees, closes, closeTarget, noBrowse = false, noCloses = false, projects } = req.vars
 
   // determine assignee(s)
   if (assignees === undefined) {
@@ -172,6 +177,8 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   }
   // we are ready to generate QA files and submit work
 
+  const prURLs = []
+  const prCalls = []
   for (const { name: projectFQN, private: isPrivate } of projects) {
     const [org, project] = projectFQN.split('/')
     const projectPath = fsPath.join(app.liq.playground(), org, project)
@@ -201,6 +208,10 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
       if (isPrivate === true) { ([remote] = determineOriginAndMain({ projectPath, reporter })) }
       else { remote = WORKSPACE }
       tryExec(`cd '${projectPath}' && git push ${remote} ${workBranch}`)
+
+      for (const pr of openPRs) {
+        prURLs.push(`${GH_BASE_URL}/${org}/${project}/pull/${pr.number}`)
+      }
     }
     else { // we create the PR
       reporter.push(`Creating PR for <em>${projectFQN}<rst> branch <code>${workBranch}<rst>...`)
@@ -231,18 +242,17 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
       const repoData = await octocache.request(`GET /repos/${org}/${project}`)
       const base = repoData.default_branch
 
-      await octocache.request(
-        'POST /repos/{owner}/{repo}/pulls',
-        {
-          owner : org,
-          repo  : project,
-          title : workUnit.description,
-          body,
-          head,
-          base
-        },
-        { noClear : true } // should be OK
-      )
+      prCalls.push(doPR({ base, body, head, octocache, org, project, prURLs, workUnit }))
+    }
+  }
+
+  if (prCalls.length > 0) {
+    await Promise.all(prCalls)
+  }
+
+  if (noBrowse !== true) {
+    for (const url of prURLs) {
+      tryExec(`open ${url}`, { noThrow : true })
     }
   }
 
@@ -251,6 +261,21 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     req,
     res
   })
+}
+
+const doPR = async({ base, body, head, octocache, org, project, prURLs, workUnit }) => {
+  const pr = await octocache.request(
+    'POST /repos/{owner}/{repo}/pulls',
+    {
+      owner : org,
+      repo  : project,
+      title : workUnit.description,
+      body,
+      head,
+      base
+    })
+
+  prURLs.push(`${GH_BASE_URL}/${org}/${project}/pull/${pr.number}`)
 }
 
 export { func, help, parameters, paths, method }
