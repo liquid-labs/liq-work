@@ -115,7 +115,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   if (workUnit === undefined) throw createError.NotFound(`No such active unit of work '${workKey}' found.`)
 
   const { dirtyOK, noPush = false } = req.vars
-  let { assignees, closes, closeTarget, noBrowse, noCloses, projects } = req.vars
+  let { assignees, closes, closeTarget, noBrowse=false, noCloses=false, projects } = req.vars
 
   // determine assignee(s)
   if (assignees === undefined) {
