@@ -61,6 +61,11 @@ const parameters = [
     description : 'When set, will continue even if the local repository is not clean.'
   },
   {
+    name        : 'noBrowse',
+    isBoolean   : true,
+    description : 'Supresses default behavior of opening a browser to the newly created pull request.'
+  },
+  {
     name        : 'noClosed',
     isBoolean   : true,
     description : 'When set, then no issues are closed in a situation where they would otherwise be closed.'
@@ -172,6 +177,8 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   }
   // we are ready to generate QA files and submit work
 
+  const prURLs = []
+  const prCalls = []
   for (const { name: projectFQN, private: isPrivate } of projects) {
     const [org, project] = projectFQN.split('/')
     const projectPath = fsPath.join(app.liq.playground(), org, project)
@@ -231,18 +238,15 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
       const repoData = await octocache.request(`GET /repos/${org}/${project}`)
       const base = repoData.default_branch
 
-      await octocache.request(
-        'POST /repos/{owner}/{repo}/pulls',
-        {
-          owner : org,
-          repo  : project,
-          title : workUnit.description,
-          body,
-          head,
-          base
-        },
-        { noClear : true } // should be OK
-      )
+      prCalls.push(doPR({ base, body, head, octocache, org, project, prURLs, workUnit }))
+    }
+  }
+
+  Promise.all(prCalls)
+
+  if (noBrowse !== true) {
+    for (const url of prURLs) {
+      tryExec(`open ${url}`, { noThrow : true })
     }
   }
 
@@ -251,6 +255,21 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     req,
     res
   })
+}
+
+const doPR = async({ base, body, head, octocache, org, project, prURLs, workUnit }) => {
+  const pr = await octocache.request(
+    'POST /repos/{owner}/{repo}/pulls',
+    {
+      owner : org,
+      repo  : project,
+      title : workUnit.description,
+      body,
+      head,
+      base
+    })
+
+  prURLs.push(`${GH_BASE_URL}/${org}/${project}/pulls/${pr.number}`)
 }
 
 export { func, help, parameters, paths, method }
