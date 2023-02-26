@@ -210,7 +210,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
       tryExec(`cd '${projectPath}' && git push ${remote} ${workBranch}`)
 
       for (const pr of openPRs) {
-        prURLs.push(`${GH_BASE_URL}/${org}/${project}/pulls/${pr.number}`)
+        prURLs.push(`${GH_BASE_URL}/${org}/${project}/pull/${pr.number}`)
       }
     }
     else { // we create the PR
