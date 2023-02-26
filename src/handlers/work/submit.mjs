@@ -275,7 +275,7 @@ const doPR = async({ base, body, head, octocache, org, project, prURLs, workUnit
       base
     })
 
-  prURLs.push(`${GH_BASE_URL}/${org}/${project}/pulls/${pr.number}`)
+  prURLs.push(`${GH_BASE_URL}/${org}/${project}/pull/${pr.number}`)
 }
 
 export { func, help, parameters, paths, method }
