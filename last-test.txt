@@ -1,0 +1,16 @@
+PASS test-staging/handlers/work/_lib/test/work-db.test.js
+  WorkDB
+    ✓ Reads database on initialization from liq constants (8 ms)
+
+---------------|---------|----------|---------|---------|--------------------------------------
+File           | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                    
+---------------|---------|----------|---------|---------|--------------------------------------
+All files      |   17.33 |    11.53 |      12 |   17.16 |                                      
+ constants.mjs |     100 |      100 |     100 |     100 |                                      
+ work-db.mjs   |   15.06 |    11.53 |      12 |    15.9 | 37-90,97-215,220-221,225-256,272-301 
+---------------|---------|----------|---------|---------|--------------------------------------
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        0.652 s, estimated 1 s
+Ran all test suites matching /.\/test-staging/i.
