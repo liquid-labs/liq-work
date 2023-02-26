@@ -208,6 +208,10 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
       if (isPrivate === true) { ([remote] = determineOriginAndMain({ projectPath, reporter })) }
       else { remote = WORKSPACE }
       tryExec(`cd '${projectPath}' && git push ${remote} ${workBranch}`)
+
+      for (const pr of openPRs) {
+        prURLs.push(`${GH_BASE_URL}/${org}/${project}/pulls/${pr.number}`)
+      }
     }
     else { // we create the PR
       reporter.push(`Creating PR for <em>${projectFQN}<rst> branch <code>${workBranch}<rst>...`)
@@ -242,7 +246,9 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     }
   }
 
-  Promise.all(prCalls)
+  if (prCalls.length > 0) {
+    await Promise.all(prCalls)
+  }
 
   if (noBrowse !== true) {
     for (const url of prURLs) {
