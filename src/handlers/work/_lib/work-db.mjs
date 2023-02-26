@@ -33,8 +33,12 @@ const WorkDB = class WorkDB {
     this.#reporter = reporter
   }
 
-  async addIssues({ issues, workKey }) {
+  async addIssues({ issues, noSave = false, workKey }) {
     const workData = this.#data[workKey] // don't use 'getData', we want the original.
+    const currIssues = workData.issues.map((i) => i.id)
+
+    issues = issues.map((i) => i.match(/^\s*\d+\s*$/) ? `${workKey}/${i.trim()}` : i.trim())
+    issues = issues.filter((issue, i, arr) => i === arr.indexOf(issue) && !currIssues.includes(issue)) // remove dupes
 
     const octocache = new Octocache({ authToken : this.#authToken })
     for (const issue of issues) {
@@ -46,27 +50,37 @@ const WorkDB = class WorkDB {
       })
     }
 
-    this.save()
+    if (noSave !== true) {
+      this.save()
+    }
 
     return structuredClone(workData)
   }
 
-  async addProjects({ projects, reporter, workKey }) {
+  async addProjects({ projects, reporter, noSave = false, workKey }) {
     const workData = this.#data[workKey] // don't use 'getData', we want the original.
     if (workData === undefined) { throw createError.NotFound(`No such unit of work '${workKey}'.`) }
 
-    await this.#setupWorkBranches({ projects, reporter, workBranch : workKey })
+    const currProjects = workData.projects.map((p) => p.name)
 
-    const octocache = new Octocache({ authToken : this.#authToken })
-    for (const project of projects) {
-      const projectData = await octocache.request(`GET /repos/${project}`)
-      workData.projects.push({
-        name    : project,
-        private : projectData.private
-      })
+    projects = projects.filter((p, i, arr) => i === arr.indexOf(p) && !currProjects.includes(p)) // remove dupes
+
+    if (projects.length > 0) {
+      await this.#setupWorkBranches({ projects, reporter, workBranch : workKey })
+
+      const octocache = new Octocache({ authToken : this.#authToken })
+      for (const project of projects) {
+        const projectData = await octocache.request(`GET /repos/${project}`)
+        workData.projects.push({
+          name    : project,
+          private : projectData.private
+        })
+      }
+
+      if (noSave !== true) {
+        this.save()
+      }
     }
-
-    this.save()
 
     return structuredClone(workData)
   }
@@ -182,8 +196,8 @@ const WorkDB = class WorkDB {
     this.#data[workBranch] = {
       description,
       initiator,
-      issues   : issuesData,
-      projects : [], // 'projects will be added seperately'
+      issues   : [], // 'issues' data will be added next
+      projects : [], // 'projects' will be added after that
       started  : now.getUTCFullYear() + '-'
         + (now.getUTCMonth() + '').padStart(2, '0') + '-'
         + (now.getUTCDay() + '').padStart(2, '0'),
@@ -191,6 +205,7 @@ const WorkDB = class WorkDB {
       workBranch
     }
 
+    await this.addIssues({ issues, noSave : true, reporter, workKey : workBranch })
     await this.addProjects({ projects, reporter, workKey : workBranch }) // this will save
 
     return structuredClone(this.#data[workBranch])
