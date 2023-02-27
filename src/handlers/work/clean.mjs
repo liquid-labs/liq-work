@@ -6,7 +6,7 @@ import { cleanWorkArtifacts } from './_lib/clean-work-artifacts'
 const help = {
   name        : 'Work clean',
   summary     : 'Cleans work branches and records.',
-  description : `Cleans up the work branches and records associated with an eligable unit of works. By default, the local copy of remote main branches will be updated in order to provide up-to-date information on the status in order to determine whether the work artifacts can be cleaned (removed). This can be supressed with the \`noFetch\` option.
+  description : `Cleans up the work branches and records associated with an eligable unit of work. By default, the local copy of remote main branches will be updated in order to provide up-to-date information on the status in order to determine whether the work artifacts can be cleaned (removed). This can be supressed with the \`noFetch\` option.
 
 See also 'work XXX status' and 'work XXX detail' for basic static information.`
 }
