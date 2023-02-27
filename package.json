@@ -27,6 +27,7 @@
     "@liquid-labs/http-smart-response": "^1.0.0-alpha.3",
     "@liquid-labs/liq-credentials-db": "file:.yalc/@liquid-labs/liq-credentials-db",
     "@liquid-labs/liq-handlers-lib": "^1.0.0-alpha.13",
+    "@liquid-labs/liq-projects-lib": "^1.0.0-alpha.2",
     "@liquid-labs/liq-qa-lib": "file:.yalc/@liquid-labs/liq-qa-lib",
     "@liquid-labs/octocache": "file:.yalc/@liquid-labs/octocache",
     "@liquid-labs/shell-toolkit": "^1.0.0-alpha.3",
