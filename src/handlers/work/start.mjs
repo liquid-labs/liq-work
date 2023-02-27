@@ -38,7 +38,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   // First, let's process projects. If nothing specified, assume the current, implied project.
   if (projects === undefined) {
     const currDir = req.get('X-CWD')
-    projects = [ determineImpliedProject({ currDir }) ]
+    projects = [determineImpliedProject({ currDir })]
   }
   // Now, make sure all project specs are valid.
   for (const project of projects) {
