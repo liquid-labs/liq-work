@@ -6,6 +6,7 @@ import * as cleanImpliedHandler from './clean-implied'
 import * as startHandler from './start'
 import * as statusHandlers from './status'
 import * as submitHandler from './submit'
+import * as submitImpliedHandler from './submit-implied'
 
 const handlers = [
   cleanHandler,
@@ -13,6 +14,7 @@ const handlers = [
   startHandler,
   statusHandlers,
   submitHandler,
+  submitImpliedHandler,
   ...issueHandlers,
   ...projectHandlers
 ]
