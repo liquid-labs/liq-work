@@ -13,6 +13,7 @@ import {
   verifyIsOnBranch
 } from '@liquid-labs/git-toolkit'
 import { determineGitHubLogin } from '@liquid-labs/github-toolkit'
+import { crossLinkDevProjects } from '@liquid-labs/liq-projects-lib'
 import { Octocache } from '@liquid-labs/octocache'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
@@ -57,7 +58,7 @@ const WorkDB = class WorkDB {
     return structuredClone(workData)
   }
 
-  async addProjects({ projects, reporter, noSave = false, workKey }) {
+  async addProjects({ app, projects, reporter, noLink = false, noSave = false, workKey }) {
     const workData = this.#data[workKey] // don't use 'getData', we want the original.
     if (workData === undefined) { throw createError.NotFound(`No such unit of work '${workKey}'.`) }
 
@@ -81,6 +82,9 @@ const WorkDB = class WorkDB {
         this.save()
       }
     }
+
+    const allProjects = projects.concat(currProjects)
+    crossLinkDevProjects({ playground : app.liq.playground(), projects : allProjects, reporter })
 
     return structuredClone(workData)
   }
@@ -163,7 +167,7 @@ const WorkDB = class WorkDB {
    * - `projects`: an array of fully qaulified project names
    * - `workBranch`: the name of the work branch.
    */
-  async startWork({ description, issues, projects, reporter }) {
+  async startWork({ app, description, issues, projects, reporter }) {
     const octocache = new Octocache({ authToken : this.#authToken })
     const now = new Date()
 
@@ -206,7 +210,7 @@ const WorkDB = class WorkDB {
     }
 
     await this.addIssues({ issues, noSave : true, reporter, workKey : workBranch })
-    await this.addProjects({ projects, reporter, workKey : workBranch }) // this will save
+    await this.addProjects({ app, projects, reporter, workKey : workBranch }) // this will save
 
     return structuredClone(this.#data[workBranch])
   } // end 'startWork'
