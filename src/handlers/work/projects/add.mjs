@@ -1,12 +1,13 @@
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 
+import { commonAddProjectParameters } from '../_lib/common-add-project-parameters'
 import { WorkDB } from '../_lib/work-db'
 
 const help = {
   name        : 'Work projects add',
   summary     : 'Add projects to a unit of work.',
-  description : 'Adds one or more projects to an existing working of work.'
+  description : 'Adds one or more projects to an existing working of work. By default, the local development copy of any project which is a dependency of another is linked the dependent project unless `noLink` is specified.'
 }
 
 const method = 'put'
@@ -25,7 +26,8 @@ const parameters = [
 
       return Object.keys(model.playground.projects).filter((p) => !currProjects.includes(p))
     }
-  }
+  },
+  ...commonAddProjectParameters()
 ]
 Object.freeze(parameters)
 
@@ -38,7 +40,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const authToken = credDB.getToken(purposes.GITHUB_API)
   const workDB = new WorkDB({ app, authToken, reporter })
 
-  const updatedWorkData = await workDB.addProjects({ authToken, projects, reporter, workKey })
+  const updatedWorkData = await workDB.addProjects({ app, projects, reporter, workKey })
 
   httpSmartResponse({
     data : updatedWorkData,

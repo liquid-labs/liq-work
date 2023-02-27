@@ -6,12 +6,13 @@ import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 import { determineImpliedProject } from '@liquid-labs/liq-projects-lib'
 
 import { commonAssignParameters } from './_lib/common-assign-parameters'
+import { commonAddProjectParameters } from './_lib/common-add-project-parameters'
 import { WorkDB } from './_lib/work-db'
 
 const help = {
   name        : 'Work start',
   summary     : 'Creates a new unit of work.',
-  description : 'Creates a new unit of work involving the designated projects.'
+  description : 'Creates a new unit of work involving the designated projects. By default, the local development copy of any project which is a dependency of another is linked the dependent project unless `noLink` is specified.'
 }
 
 const method = 'post'
@@ -29,6 +30,7 @@ const parameters = [
     description  : 'The project(s) to include in the new unit of work. If none are specified, then will guess the current implied project based on the client working directory.',
     optionsFunc  : ({ model }) => Object.keys(model.playground.projects)
   },
+  ...commonAddProjectParameters(),
   ...commonAssignParameters()
 ]
 Object.freeze(parameters)
@@ -55,7 +57,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   await claimIssues({ assignee, authToken, comment, issues, reporter })
 
   const workDB = new WorkDB({ app, authToken, reporter })
-  const workData = await workDB.startWork({ issues, projects, reporter })
+  const workData = await workDB.startWork({ app, issues, projects, reporter })
 
   reporter.push(`Started work '<em>${workData.description}<rst>'.`)
 
