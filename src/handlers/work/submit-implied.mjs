@@ -4,7 +4,15 @@ import { determineCurrentBranch } from '@liquid-labs/git-toolkit'
 
 import { getSubmitEndpointParams, doSubmit } from './_lib/submit-lib'
 
-const { help, method, parameters } = getSubmitEndpointParams({ descIntro : 'Submits the changes associated with the current unit of work by creating a pull request for the changes in each project associated with the unit of work.' })
+let { help, method, parameters } = getSubmitEndpointParams({ descIntro : 'Submits the changes associated with the current unit of work by creating a pull request for the changes in each project associated with the unit of work.' })
+parameters = [
+  {
+    name        : 'all',
+    isBoolean   : true,
+    description : 'Saves all projects associated with the unit of work.'
+  },
+  ...parameters
+]
 
 const path = ['work', 'submit']
 

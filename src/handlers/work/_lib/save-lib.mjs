@@ -83,11 +83,6 @@ const getSaveEndpointParams = ({ descIntro }) => {
     method     : 'put',
     parameters : [
       {
-        name        : 'all',
-        isBoolean   : true,
-        description : 'Saves all projects associated with the unit of work.'
-      },
-      {
         name        : 'backupOnly',
         isBoolean   : true,
         description : ''
