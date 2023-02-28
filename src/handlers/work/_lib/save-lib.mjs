@@ -2,7 +2,7 @@ import * as fsPath from 'node:path'
 
 import createError from 'http-errors'
 
-import { determineCurrentBranch } from '@liquid-labs/git-toolkit'
+import { determineCurrentBranch, determineIfUncommittedChanges } from '@liquid-labs/git-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
@@ -59,10 +59,15 @@ const doSave = async({
     }
 
     if (backupOnly !== true) {
-      reporter.push('  <em>committing<rst> local changes')
-      const command = `cd '${projectPath}' && git add . && git commit -m '${summary}'`
-        + (description === undefined ? '' : ` -m '${description}'`)
-      tryExec(command)
+      if (determineIfUncommittedChanges({ projectPath /* We're hanling the reporting  */ })) {
+        reporter.push('  <em>committing<rst> local changes')
+        const command = `cd '${projectPath}' && git add . && git commit -m '${summary}'`
+          + (description === undefined ? '' : ` -m '${description}'`)
+        tryExec(command)
+      }
+      else {
+        reporter.push('  no changes to save')
+      }
     }
     if (noBackup !== true) {
       reporter.push('  <em>pushing<rst> local changes')
