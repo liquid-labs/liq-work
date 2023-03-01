@@ -2,7 +2,11 @@ import * as fsPath from 'node:path'
 
 import createError from 'http-errors'
 
-import { determineCurrentBranch, determineIfUncommittedChanges } from '@liquid-labs/git-toolkit'
+import { 
+  determineCurrentBranch, 
+  determineIfNonStagedChanges, 
+  determineIfUncommittedChanges 
+} from '@liquid-labs/git-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
@@ -22,6 +26,7 @@ const doSave = async({
   res,
   summary
 }) => {
+  console.log('workKey:', workKey)
   if (backupOnly !== true && summary === undefined) {
     throw createError.BadRequest("You must specify 'summary' when saving local changes (committing).")
   }
@@ -45,7 +50,7 @@ const doSave = async({
     projects = workUnit.projects.map((wu) => wu.name)
   }
   else if (projects === undefined) {
-    projects = [fsPath.basename(fsPath.dirname(cwd)) + '/' + fsPath.basename(cwd)]
+    projects = workUnit.projects.map((p) => p.name)
   }
 
   for (const projectFQN of projects) {
@@ -59,9 +64,16 @@ const doSave = async({
     }
 
     if (backupOnly !== true) {
+      if (determineIfNonStagedChanges({ projectPath /* We're handling the reporting */ })) {
+        reporter.push('  <em>staging<rst> local changes')
+        tryExec(`cd '${projectPath}' && git add .`)
+      }
+      else {
+        reporter.push('  nothing to stage')
+      }
       if (determineIfUncommittedChanges({ projectPath /* We're hanling the reporting  */ })) {
         reporter.push('  <em>committing<rst> local changes')
-        const command = `cd '${projectPath}' && git add . && git commit -m '${summary}'`
+        const command = `cd '${projectPath}' && git commit -m '${summary}'`
           + (description === undefined ? '' : ` -m '${description}'`)
         tryExec(command)
       }

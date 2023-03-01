@@ -22,7 +22,7 @@
   "homepage": "https://github.com/liquid-labs/liq-work#readme",
   "dependencies": {
     "@liquid-labs/federated-json": "^1.0.0-alpha.33",
-    "@liquid-labs/git-toolkit": "file:.yalc/@liquid-labs/git-toolkit",
+    "@liquid-labs/git-toolkit": "^1.0.0-alpha.7",
     "@liquid-labs/github-toolkit": "file:.yalc/@liquid-labs/github-toolkit",
     "@liquid-labs/http-smart-response": "^1.0.0-alpha.3",
     "@liquid-labs/liq-credentials-db": "file:.yalc/@liquid-labs/liq-credentials-db",
