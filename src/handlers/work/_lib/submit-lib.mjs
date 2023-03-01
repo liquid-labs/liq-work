@@ -179,7 +179,7 @@ const getSubmitEndpointParams = ({ descIntro }) => {
     help : {
       name        : 'Work submit.',
       summary     : 'Submits changes for review and merging.',
-      description : `${descIntro}. By default, any un-pushed local changes are push to the proper remote. Each PR will reference the associated issues and linked to the primary project's PR for closing when it is merged.
+      description : `${descIntro} By default, any un-pushed local changes are push to the proper remote. Each PR will reference the associated issues and linked to the primary project's PR for closing when it is merged.
 
 Pushing chanes to the remote can be suppressed with \`noPush\`.
 
