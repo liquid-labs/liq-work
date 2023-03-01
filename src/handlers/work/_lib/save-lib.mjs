@@ -2,10 +2,10 @@ import * as fsPath from 'node:path'
 
 import createError from 'http-errors'
 
-import { 
-  determineCurrentBranch, 
-  determineIfNonStagedChanges, 
-  determineIfUncommittedChanges 
+import {
+  determineCurrentBranch,
+  determineIfUnstagedChanges,
+  determineIfUncommittedChanges
 } from '@liquid-labs/git-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { tryExec } from '@liquid-labs/shell-toolkit'
@@ -64,7 +64,7 @@ const doSave = async({
     }
 
     if (backupOnly !== true) {
-      if (determineIfNonStagedChanges({ projectPath /* We're handling the reporting */ })) {
+      if (determineIfUnstagedChanges({ projectPath /* We're handling the reporting */ })) {
         reporter.push('  <em>staging<rst> local changes')
         tryExec(`cd '${projectPath}' && git add .`)
       }
