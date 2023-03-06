@@ -124,6 +124,15 @@ const WorkDB = class WorkDB {
     return structuredClone(workData)
   }
 
+  requireData(workKey) {
+    const workUnit = this.getData(workKey)
+    if (workUnit === undefined) {
+      throw createError.NotFound(`No such unit of work '${workKey}'.`)
+    }
+    
+    return workUnit
+  }
+
   async #setupWorkBranches({ projects, reporter, workBranch }) {
     const octocache = new Octocache({ authToken : this.#authToken })
     for (const project of projects) {
