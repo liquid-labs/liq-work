@@ -23,11 +23,11 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
 
   const workDB = new WorkDB({ app, reporter }) // doesn't need auth token
 
-  let workUnit
+  let workUnit;
   ([ projects, workUnit ] = 
-    determineProjects({ all, cliEndpoint: 'work submit', projects, reporter, req, workDB, workKey })]));
+    determineProjects({ all, cliEndpoint: 'work submit', projects, reporter, req, workDB, workKey }));
 
-  let { assignees, closes, closeTarget, noBrowse = false, noCloses = false, projects } = req.vars
+  let { assignees, closes, closeTarget, noBrowse = false, noCloses = false } = req.vars
 
   // determine assignee(s)
   if (assignees === undefined) {
@@ -35,7 +35,7 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
   }
 
   // map projects to array of project entries ({ name, private })
-  projects = projects.map((p) => workUnit.projects.find(wup) => wup.name === p)
+  projects = projects.map((p) => workUnit.projects.find((wup) => wup.name === p))
 
   // we can now check if we are closing issues and which issues to close
   // because we de-duped, the lists would have equiv length our working set named all

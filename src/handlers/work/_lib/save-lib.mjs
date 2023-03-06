@@ -10,7 +10,7 @@ import {
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
-import { getCommonImpliedParameters } from './_lib/common-implied-parameters'
+import { getCommonImpliedParameters } from './common-implied-parameters'
 import { WorkDB } from './work-db'
 
 const doSave = async({
@@ -33,7 +33,7 @@ const doSave = async({
 
   const workDB = new WorkDB({ app, cache });
 
-  ([ projects ] = determineProjects({ all, cliEndpoint: 'work save', projects, reporter, req, workDB, workKey })]));
+  ([ projects ] = determineProjects({ all, cliEndpoint: 'work save', projects, reporter, req, workDB, workKey }));
 
   for (const projectFQN of projects) {
     const [org, project] = projectFQN.split('/')
