@@ -34,8 +34,8 @@ const doSave = async({
 
   const workDB = new WorkDB({ app, cache });
 
-  ([projects, workKey] = 
-    await determineProjects({ all, cliEndpoint : 'work save', projects, reporter, req, workDB, workKey }));
+  ([projects, workKey] =
+    await determineProjects({ all, cliEndpoint : 'work save', projects, reporter, req, workDB, workKey }))
 
   for (const projectFQN of projects) {
     const [org, project] = projectFQN.split('/')
