@@ -10,6 +10,8 @@ import {
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
+import { getCommonImpliedParameters } from './common-implied-parameters'
+import { determineProjects } from './determine-projects'
 import { WorkDB } from './work-db'
 
 const doSave = async({
@@ -26,32 +28,14 @@ const doSave = async({
   res,
   summary
 }) => {
-  console.log('workKey:', workKey)
   if (backupOnly !== true && summary === undefined) {
     throw createError.BadRequest("You must specify 'summary' when saving local changes (committing).")
   }
 
-  const cwd = req.get('X-CWD')
-  if (workKey === undefined) {
-    if (cwd === undefined) {
-      throw createError.BadRequest("Called 'work submit' with implied work, but 'X-CWD' header not found.")
-    }
+  const workDB = new WorkDB({ app, cache });
 
-    workKey = determineCurrentBranch({ projectPath : cwd, reporter })
-  }
-
-  const workDB = new WorkDB({ app, cache })
-  const workUnit = workDB.getData(workKey)
-  if (workUnit === undefined) {
-    throw createError.NotFound(`No such unit of work '${workKey}' found in work DB.`)
-  }
-
-  if (all === true) {
-    projects = workUnit.projects.map((wu) => wu.name)
-  }
-  else if (projects === undefined) {
-    projects = workUnit.projects.map((p) => p.name)
-  }
+  ([projects, workKey] =
+    await determineProjects({ all, cliEndpoint : 'work save', projects, reporter, req, workDB, workKey }))
 
   for (const projectFQN of projects) {
     const [org, project] = projectFQN.split('/')
@@ -116,8 +100,9 @@ const getSaveEndpointParams = ({ descIntro }) => {
       {
         name        : 'summary',
         description : 'Short, concise description of the changes.'
-      }
-    ]
+      },
+      ...getCommonImpliedParameters({ actionDesc : 'save' })
+    ].sort((a, b) => a.name.localeCompare(b.name))
   }
 
   Object.freeze(endpointParams.parameters)

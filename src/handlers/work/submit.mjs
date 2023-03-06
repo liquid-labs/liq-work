@@ -5,9 +5,9 @@ const { help, method, parameters } = getSubmitEndpointParams({ descIntro : 'Subm
 const path = ['work', ':workKey', 'submit']
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
-  const { workKey } = req.vars
+  const { projects, workKey } = req.vars
 
-  await doSubmit({ app, cache, workKey, reporter, req, res })
+  await doSubmit({ all : false, app, cache, projects, reporter, req, res, workKey })
 }
 
 export { func, help, parameters, path, method }

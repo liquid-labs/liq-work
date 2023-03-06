@@ -1,7 +1,5 @@
 import * as fsPath from 'node:path'
 
-import createError from 'http-errors'
-
 import { determineOriginAndMain, verifyBranchInSync, verifyClean, workBranchName } from '@liquid-labs/git-toolkit'
 import { determineGitHubLogin } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
@@ -11,9 +9,10 @@ import { Octocache } from '@liquid-labs/octocache'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { GH_BASE_URL, WORKSPACE } from './constants'
+import { determineProjects } from './determine-projects'
 import { WorkDB } from './work-db'
 
-const doSubmit = async({ app, cache, workKey, reporter, req, res }) => {
+const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey }) => {
   reporter = reporter.isolate()
 
   const { dirtyOK, noPush = false } = req.vars
@@ -23,31 +22,19 @@ const doSubmit = async({ app, cache, workKey, reporter, req, res }) => {
 
   const workDB = new WorkDB({ app, reporter }) // doesn't need auth token
 
-  const workUnit = workDB.getData(workKey)
-  if (workUnit === undefined) throw createError.NotFound(`No such active unit of work '${workKey}' found.`)
+  let workUnit;
+  ([projects, workKey, workUnit] =
+    await determineProjects({ all, cliEndpoint : 'work submit', projects, reporter, req, workDB, workKey }))
 
-  let { assignees, closes, closeTarget, noBrowse = false, noCloses = false, projects } = req.vars
+  let { assignees, closes, closeTarget, noBrowse = false, noCloses = false } = req.vars
 
   // determine assignee(s)
   if (assignees === undefined) {
     assignees = [(await determineGitHubLogin({ authToken })).login]
   }
 
-  // determine the projects to submit
-  if (projects === undefined) {
-    projects = workUnit.projects
-  }
-  else {
-    // remove duplicates in the list
-    projects = projects.filter((p, i, arr) => i === arr.indexOf(p))
-    projects.forEach((p, i, arr) => {
-      const project = workUnit.projects.find((wup) => wup.name === p)
-      if (project === undefined) { throw createError.NotFound(`No record of project <em>${p}<rst> in unit of work '${workKey}'.`) }
-
-      arr.splice(i, 1, project)
-    })
-  }
-  // projects is now an array of project entries ({ name, private })
+  // map projects to array of project entries ({ name, private })
+  projects = projects.map((p) => workUnit.projects.find((wup) => wup.name === p))
 
   // we can now check if we are closing issues and which issues to close
   // because we de-duped, the lists would have equiv length our working set named all
