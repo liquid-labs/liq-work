@@ -7,9 +7,9 @@ import { getSubmitEndpointParams, doSubmit } from './_lib/submit-lib'
 
 let { help, method, parameters } = getSubmitEndpointParams({ descIntro : 'Submits the changes associated with the current unit of work by creating a pull request for the changes in each project associated with the unit of work.' })
 parameters = [
-  ...getCommonImpliedParameters({ actionDesc: 'submit' }),
+  ...getCommonImpliedParameters({ actionDesc : 'submit' }),
   ...parameters
-].sort((a,b) => a.name.localeCompare(b.name))
+].sort((a, b) => a.name.localeCompare(b.name))
 
 const path = ['work', 'submit']
 

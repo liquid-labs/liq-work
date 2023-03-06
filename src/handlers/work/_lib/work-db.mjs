@@ -129,7 +129,7 @@ const WorkDB = class WorkDB {
     if (workUnit === undefined) {
       throw createError.NotFound(`No such unit of work '${workKey}'.`)
     }
-    
+
     return workUnit
   }
 

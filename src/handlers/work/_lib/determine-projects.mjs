@@ -1,5 +1,6 @@
 import createError from 'http-errors'
 
+import { determineCurrentBranch } from '@liquid-labs/git-toolkit'
 import { determineImpliedProject } from '@liquid-labs/liq-projects-lib'
 
 const determineProjects = ({ all, cliEndpoint, projects, reporter, req, workDB, workKey }) => {
@@ -27,13 +28,13 @@ const determineProjects = ({ all, cliEndpoint, projects, reporter, req, workDB, 
     projects = projects.filter((p, i, arr) => arr.indexOf(p) === i)
 
     for (const projectFQN of projects) {
-      if (!workProjects.find((p) => p.name === projectFQN)) {
+      if (!workUnit.projects.find((p) => p.name === projectFQN)) {
         throw createError.BadRequest(`No such project to save: '${projectFQN}'.`)
       }
     }
   }
 
-  return [ projects, workUnit ]
+  return [projects, workUnit]
 }
 
 export { determineProjects }

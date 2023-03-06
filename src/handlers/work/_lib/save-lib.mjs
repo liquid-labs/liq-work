@@ -11,6 +11,7 @@ import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { getCommonImpliedParameters } from './common-implied-parameters'
+import { determineProjects } from './determine-projects'
 import { WorkDB } from './work-db'
 
 const doSave = async({
@@ -33,7 +34,7 @@ const doSave = async({
 
   const workDB = new WorkDB({ app, cache });
 
-  ([ projects ] = determineProjects({ all, cliEndpoint: 'work save', projects, reporter, req, workDB, workKey }));
+  ([projects] = determineProjects({ all, cliEndpoint : 'work save', projects, reporter, req, workDB, workKey }))
 
   for (const projectFQN of projects) {
     const [org, project] = projectFQN.split('/')
@@ -99,8 +100,8 @@ const getSaveEndpointParams = ({ descIntro }) => {
         name        : 'summary',
         description : 'Short, concise description of the changes.'
       },
-      ...getCommonImpliedParameters({ actionDesc: 'save' })
-    ].sort((a,b) => a.name.localeCompare(b.name))
+      ...getCommonImpliedParameters({ actionDesc : 'save' })
+    ].sort((a, b) => a.name.localeCompare(b.name))
   }
 
   Object.freeze(endpointParams.parameters)

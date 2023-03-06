@@ -1,7 +1,5 @@
 import * as fsPath from 'node:path'
 
-import createError from 'http-errors'
-
 import { determineOriginAndMain, verifyBranchInSync, verifyClean, workBranchName } from '@liquid-labs/git-toolkit'
 import { determineGitHubLogin } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
@@ -11,6 +9,7 @@ import { Octocache } from '@liquid-labs/octocache'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { GH_BASE_URL, WORKSPACE } from './constants'
+import { determineProjects } from './determine-projects'
 import { WorkDB } from './work-db'
 
 const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey }) => {
@@ -24,8 +23,8 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
   const workDB = new WorkDB({ app, reporter }) // doesn't need auth token
 
   let workUnit;
-  ([ projects, workUnit ] = 
-    determineProjects({ all, cliEndpoint: 'work submit', projects, reporter, req, workDB, workKey }));
+  ([projects, workUnit] =
+    determineProjects({ all, cliEndpoint : 'work submit', projects, reporter, req, workDB, workKey }))
 
   let { assignees, closes, closeTarget, noBrowse = false, noCloses = false } = req.vars
 

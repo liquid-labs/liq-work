@@ -7,7 +7,7 @@ const path = ['work', ':workKey', 'submit']
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const { projects, workKey } = req.vars
 
-  await doSubmit({ all: false, app, cache, projects, reporter, req, res, workKey })
+  await doSubmit({ all : false, app, cache, projects, reporter, req, res, workKey })
 }
 
 export { func, help, parameters, path, method }
