@@ -7,7 +7,7 @@ const path = ['work', ':workKey', 'save']
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const { backupOnly = false, description, noBackup = false, projects, summary, workKey } = req.vars
 
-  doSave({ app, backupOnly, cache, description, noBackup, projects, workKey, reporter, req, res, summary })
+  await doSave({ app, backupOnly, cache, description, noBackup, projects, workKey, reporter, req, res, summary })
 }
 
 export { func, help, parameters, path, method }

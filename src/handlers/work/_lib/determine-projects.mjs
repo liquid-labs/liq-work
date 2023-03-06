@@ -3,16 +3,13 @@ import createError from 'http-errors'
 import { determineCurrentBranch } from '@liquid-labs/git-toolkit'
 import { determineImpliedProject } from '@liquid-labs/liq-projects-lib'
 
-const determineProjects = ({ all, cliEndpoint, projects, reporter, req, workDB, workKey }) => {
+const determineProjects = async({ all, cliEndpoint, projects, reporter, req, workDB, workKey }) => {
   // first, we determine the work key
-  let currDir
+  const currDir = req.get('X-CWD')
   if (workKey === undefined) {
-    currDir = req.get('X-CWD')
-    if (currDir === undefined) {
-      throw createError.BadRequest(`Called '${cliEndpoint}' with implied work, but 'X-CWD' header not found.`)
-    }
+    requireCurrDir({ cliEndpoint, currDir })
 
-    workKey = determineCurrentBranch({ projectPath : currDir, reporter })
+    workKey = await determineCurrentBranch({ projectPath : currDir, reporter })
   }
 
   const workUnit = workDB.requireData(workKey)
@@ -21,6 +18,8 @@ const determineProjects = ({ all, cliEndpoint, projects, reporter, req, workDB, 
     projects = workUnit.projects.map((wu) => wu.name)
   }
   else if (projects === undefined) {
+    requireCurrDir({ cliEndpoint, currDir })
+
     projects = [determineImpliedProject({ currDir })]
   }
   else { // else projects is defined, let's make sure they're valid
@@ -34,7 +33,13 @@ const determineProjects = ({ all, cliEndpoint, projects, reporter, req, workDB, 
     }
   }
 
-  return [projects, workUnit]
+  return [projects, workKey, workUnit]
+}
+
+const requireCurrDir = ({ cliEndpoint, currDir }) => {
+  if (currDir === undefined) {
+    throw createError.BadRequest(`Called '${cliEndpoint}' with implied work, but 'X-CWD' header not found.`)
+  }
 }
 
 export { determineProjects }

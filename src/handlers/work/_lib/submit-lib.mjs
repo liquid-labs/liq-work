@@ -23,8 +23,8 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
   const workDB = new WorkDB({ app, reporter }) // doesn't need auth token
 
   let workUnit;
-  ([projects, workUnit] =
-    determineProjects({ all, cliEndpoint : 'work submit', projects, reporter, req, workDB, workKey }))
+  ([projects, workKey, workUnit] =
+    await determineProjects({ all, cliEndpoint : 'work submit', projects, reporter, req, workDB, workKey }))
 
   let { assignees, closes, closeTarget, noBrowse = false, noCloses = false } = req.vars
 

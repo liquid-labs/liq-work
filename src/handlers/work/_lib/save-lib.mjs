@@ -34,12 +34,14 @@ const doSave = async({
 
   const workDB = new WorkDB({ app, cache });
 
-  ([projects] = determineProjects({ all, cliEndpoint : 'work save', projects, reporter, req, workDB, workKey }))
+  ([projects, workKey] = 
+    await determineProjects({ all, cliEndpoint : 'work save', projects, reporter, req, workDB, workKey }));
 
   for (const projectFQN of projects) {
     const [org, project] = projectFQN.split('/')
     const projectPath = fsPath.join(app.liq.playground(), org, project)
     const currBranch = determineCurrentBranch({ projectPath, reporter })
+    console.log('currBranch:', currBranch, 'workKey:', workKey) // DEBUG
     reporter.push(`Processing <code>${projectFQN}<rst>...`)
     if (currBranch !== workKey) {
       reporter.push(`  <em>skipping<rst>; not on work branch <code>${workKey}<rst>`)
