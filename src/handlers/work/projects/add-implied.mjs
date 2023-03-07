@@ -3,7 +3,7 @@ import { requireImpliedBranch } from '../_lib/require-implied-work'
 
 const { help, method, parameters } = getAddProjectsEndpointParameters({ workDesc : 'named' })
 
-const path = ['work', ':workKey', 'projects', 'add']
+const path = ['work', 'projects', 'add']
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const workKey = await requireImpliedBranch({ reporter, req })
