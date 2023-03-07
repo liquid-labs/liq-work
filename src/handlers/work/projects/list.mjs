@@ -31,6 +31,8 @@ const terminalFormatter = (issues) => issues.map((i) => `<em>${i.name}<rst>:\n  
 const textFormatter = (issues) => issues.map((i) => `${i.name}:\n  - private: ${i.private}`).join('\n')
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
+  reporter = reporter.isolate()
+
   const { browseEach = false, workKey } = req.vars
 
   const workDB = new WorkDB({ app })

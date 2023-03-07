@@ -36,6 +36,8 @@ const parameters = [
 Object.freeze(parameters)
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
+  reporter = reporter.isolate()
+
   let { assignee, comment, issues, noAutoAssign = false, projects } = req.vars
   // First, let's process projects. If nothing specified, assume the current, implied project.
   if (projects === undefined) {

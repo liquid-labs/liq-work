@@ -41,6 +41,8 @@ parameters.find((p) => p.name === 'issues').optionsFunc = issueOptionsFunc
 Object.freeze(parameters)
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
+  reporter = reporter.isolate()
+
   let { comment, issues, noUnassign, noUnlabel, workKey } = req.vars
 
   const workDB = new WorkDB({ app, reporter })

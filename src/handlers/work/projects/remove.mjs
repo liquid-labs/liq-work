@@ -41,6 +41,8 @@ const parameters = [
 Object.freeze(parameters)
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
+  reporter = reporter.isolate()
+
   const { allowUnclean = false, forgetChanges = false, projects, workKey } = req.vars
 
   const workDB = new WorkDB({ app, reporter })
