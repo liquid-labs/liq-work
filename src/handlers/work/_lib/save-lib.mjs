@@ -57,7 +57,7 @@ const doSave = async({
       }
       if (determineIfUncommittedChanges({ projectPath /* We're hanling the reporting  */ })) {
         reporter.push('  <em>committing<rst> local changes')
-        const command = `cd '${projectPath}' && git commit -m '${summary.replaceAll(/'/g, `'"'"'`)}'`
+        const command = `cd '${projectPath}' && git commit -m '${summary.replaceAll(/'/g, '\'"\'"\'')}'`
           + (description === undefined ? '' : ` -m '${description}'`)
         tryExec(command)
       }
