@@ -9,6 +9,8 @@ import { tryExec } from '@liquid-labs/shell-toolkit'
 import { WorkDB } from './work-db'
 
 const doPause = async({ app, cache, reporter, req, res, workKey }) => {
+  reporter = reporter.isolate()
+
   if (workKey === undefined) {
     const currDir = req.get('X-CWD')
     if (currDir === undefined) {

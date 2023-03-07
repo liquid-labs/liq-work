@@ -51,6 +51,8 @@ const parameters = [
 Object.freeze(parameters)
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
+  reporter = reporter.isolate()
+
   const {
     allPulls = false,
     clean = false,

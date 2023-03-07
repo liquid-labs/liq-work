@@ -28,6 +28,8 @@ const doSave = async({
   res,
   summary
 }) => {
+  reporter = reporter.isolate()
+
   if (backupOnly !== true && summary === undefined) {
     throw createError.BadRequest("You must specify 'summary' when saving local changes (committing).")
   }

@@ -17,6 +17,8 @@ const parameters = [...commonCleanParameters]
 Object.freeze(parameters)
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
+  reporter = reporter.isolate()
+
   const {
     noCloseWork = false,
     noDeleteBranches = false,
