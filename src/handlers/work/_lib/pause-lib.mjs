@@ -41,7 +41,7 @@ const doPause = async({ app, cache, reporter, req, res, workKey }) => {
         projectsSkipped.push({ projectFQN, projectPath })
       }
       else {
-        throw createError.BadRequest(`Project '${projectFQN}' is on unknown branch '${currBranch}'; pause aborted.`)
+        throw createError.BadRequest(`Project '${projectFQN}' is on non-main, non-current work branch '${currBranch}'; pause aborted.`)
       }
     }
   }
@@ -61,10 +61,10 @@ const doPause = async({ app, cache, reporter, req, res, workKey }) => {
 
   const msg = reporter.taskReport.join('\n') + '\n\n'
     + (projectsToSwitch.length > 0
-      ? `<em>Switched projects <code>${projectsToSwitch.map((p) => p.projectFQN).join('<rst>, <code>')}<rst> to main branch and re-installed package.`
+      ? `<em>Switched projects <code>${projectsToSwitch.map((p) => p.projectFQN).join('<rst>, <code>')}<rst> to main branch and <em>re-installed<rst> package.`
       : '')
     + (projectsSkipped.length > 0
-      ? `<em>Projects <code>${projectsSkipped.map((p) => p.projectFQN).join('<rst>, <code>')}<rst> already on main; re-installed.`
+      ? `<em>Projects <code>${projectsSkipped.map((p) => p.projectFQN).join('<rst>, <code>')}<rst> already on main; <em>re-installed<rst> package.`
       : '')
   httpSmartResponse({ msg, req, res })
 }
