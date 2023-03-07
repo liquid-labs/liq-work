@@ -3,6 +3,8 @@ import { handlers as projectHandlers } from './projects'
 
 import * as cleanHandler from './clean'
 import * as cleanImpliedHandler from './clean-implied'
+import * as pauseHandler from './pause'
+import * as pauseImpliedHandler from './pause-implied'
 import * as saveHandler from './save'
 import * as saveImpliedHandler from './save-implied'
 import * as startHandler from './start'
@@ -13,6 +15,8 @@ import * as submitImpliedHandler from './submit-implied'
 const handlers = [
   cleanHandler,
   cleanImpliedHandler,
+  pauseHandler,
+  pauseImpliedHandler,
   saveHandler,
   saveImpliedHandler,
   startHandler,
