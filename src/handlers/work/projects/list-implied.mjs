@@ -1,11 +1,12 @@
 import { doListProjects, getListProjectsEndpointParameters } from './_lib/list-lib'
+import { requireImpliedBranch } from '../_lib/require-implied-work'
 
 const { help, method, parameters } = getListProjectsEndpointParameters({ workDesc : 'named' })
 
-const path = ['work', ':workKey', 'projects', 'list']
+const path = ['work', 'projects', 'list']
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
-  const { workKey } = req.vars
+  const workKey = await requireImpliedBranch({ reporter, req })
 
   await doListProjects({ app, cache, reporter, req, res, workKey })
 }
