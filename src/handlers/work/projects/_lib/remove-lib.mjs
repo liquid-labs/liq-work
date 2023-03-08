@@ -100,7 +100,7 @@ const getRemoveProjectsEndpointParameters = ({ workDesc }) => {
       name         : 'projects',
       isMultivalue : true,
       descirption  : 'Specifies the project to remove from the unit of work. May be specified multiple times.',
-      optionsFunc  : async ({ app, req, workKey }) => {
+      optionsFunc  : async({ app, req, workKey }) => {
         workKey = workKey || await requireImpliedBranch({ req })
 
         const workDB = new WorkDB({ app })

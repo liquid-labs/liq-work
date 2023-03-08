@@ -32,7 +32,7 @@ const getAddProjectsEndpointParameters = ({ workDesc }) => {
       name         : 'projects',
       isMultivalue : true,
       description  : 'The project to add to the unit of work. May be specify multiple projects.',
-      optionsFunc  : async ({ app, cache, model, req, workKey }) => {
+      optionsFunc  : async({ app, cache, model, req, workKey }) => {
         workKey = workKey || await requireImpliedBranch({ req })
 
         const credDB = new CredentialsDB({ app, cache })
