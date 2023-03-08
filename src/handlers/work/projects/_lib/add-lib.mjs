@@ -2,6 +2,7 @@ import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 
 import { commonAddProjectParameters } from '../../_lib/common-add-project-parameters'
+import { requireImpliedBranch } from '../../_lib/require-implied-work'
 import { WorkDB } from '../../_lib/work-db'
 
 const doAddProjects = async({ app, cache, model, reporter, req, res, workKey }) => {
@@ -31,7 +32,9 @@ const getAddProjectsEndpointParameters = ({ workDesc }) => {
       name         : 'projects',
       isMultivalue : true,
       description  : 'The project to add to the unit of work. May be specify multiple projects.',
-      optionsFunc  : ({ app, cache, model, workKey }) => {
+      optionsFunc  : async ({ app, cache, model, req, workKey }) => {
+        workKey = workKey || await requireImpliedBranch({ req })
+
         const credDB = new CredentialsDB({ app, cache })
         const authToken = credDB.getToken(purposes.GITHUB_API)
         const workDB = new WorkDB({ app, authToken })
