@@ -115,7 +115,7 @@ const generateProjectsReport = async({
       const localMainContainsLocalChanges =
         tryExec(`cd '${projectPath}' && git branch -a --contains ${workKey} ${main}`).stdout.length > 0
       const remoteMainContainsLocalChanges =
-        tryExec(`cd '${projectPath}' && git branch -a --contains ${workKey} ${remote}/${main}`).stdout.length > 0
+        tryExec(`cd '${projectPath}' && git branch -a --contains ${workKey} ${origin}/${main}`).stdout.length > 0
       projectStatus.localChanges = {
         mergedToLocalMain  : localMainContainsLocalChanges,
         mergedToRemoteMain : remoteMainContainsLocalChanges
@@ -126,7 +126,7 @@ const generateProjectsReport = async({
       const localMainContainsRemoteChanges =
         tryExec(`cd '${projectPath}' && git branch -a --contains ${remote}/${workKey} ${main}`).stdout.length > 0
       const remoteMainContainsRemoteChanges =
-        tryExec(`cd '${projectPath}' && git branch -a --contains ${remote}/${workKey} ${remote}/${main}`)
+        tryExec(`cd '${projectPath}' && git branch -a --contains ${remote}/${workKey} ${origin}/${main}`)
           .stdout.length > 0
       projectStatus.remoteChanges = {
         mergedToLocalMain  : localMainContainsRemoteChanges,
@@ -136,7 +136,12 @@ const generateProjectsReport = async({
 
     // analyze PRs
     projectStatus.pullRequests = []
+    reporter.push(`Retrieving pull requests associated with head '${workKey}'...`)
     let reportPRs = await octocache.paginate(`GET /repos/${projectFQN}/pulls`, { head : workKey, state : 'all' })
+    // As of 2023-03-08, the 'head' argument requires (for cross-repo merges) the name of the individual that
+    // requested the pull, which is unknowable. Also (weirdly), if there is no match on the head, it returns
+    // everything (?!), so we implement post-processing here
+    reportPRs = reportPRs.filter((pr) => pr.head.ref === workKey)
     const prCount = reportPRs.length
     projectStatus.totalPRs = prCount
     if (allPulls !== true) {
