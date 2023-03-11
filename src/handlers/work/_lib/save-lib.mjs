@@ -85,7 +85,7 @@ const getSaveEndpointParams = ({ descIntro }) => {
           const currDir = req.get('X-CWD')
           const [impOrg, impProj] = determineImpliedProject({ currDir }).split('/')
           const impliedProjectFQN = impOrg + '/' + impProj
-          workKey = workKey || determineCurrentBranch({ projectPath: currDir })
+          workKey = workKey || determineCurrentBranch({ projectPath : currDir })
 
           console.log('in the options func! lastOptionValue:', lastOptionValue, 'impliedProjectFQN:', impliedProjectFQN) // DEBUG
 
@@ -110,7 +110,7 @@ const getSaveEndpointParams = ({ descIntro }) => {
                 const dirEnts = await fs.readdir(filePath, { withFileTypes : true })
                 const opts = dirEnts.map((d) => {
                   // we need te propend the relpath (with '/' where needed)
-                  let opt = relPath ? relPath : ''
+                  let opt = relPath || ''
                   if (relPath && !relPath.endsWith('/')) {
                     opt += '/'
                   }
@@ -129,8 +129,8 @@ const getSaveEndpointParams = ({ descIntro }) => {
               }
             }
             catch (e) {
-              // the 'ENOENT' error comes from trying to 'stat' a file. If we have a partial, then that will fail, but 
-              // knocking off the partial will gives us the actual dir, so that's what we do here. However, we don't 
+              // the 'ENOENT' error comes from trying to 'stat' a file. If we have a partial, then that will fail, but
+              // knocking off the partial will gives us the actual dir, so that's what we do here. However, we don't
               // need to go further than one level because if that fails, indicated by the 'terminal' param.
               if (e.code === 'ENOENT' && terminal !== true) {
                 return await fileOptions({
