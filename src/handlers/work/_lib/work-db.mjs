@@ -212,8 +212,8 @@ const WorkDB = class WorkDB {
       issues   : [], // 'issues' data will be added next
       projects : [], // 'projects' will be added after that
       started  : now.getUTCFullYear() + '-'
-        + (now.getUTCMonth() + '').padStart(2, '0') + '-'
-        + (now.getUTCDay() + '').padStart(2, '0'),
+        + ((now.getUTCMonth() + 1) + '').padStart(2, '0') + '-'
+        + (now.getUTCDate() + '').padStart(2, '0'),
       startedEpoch : now.getTime(),
       workBranch
     }
