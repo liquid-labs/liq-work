@@ -43,7 +43,8 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
     workKey
   })
 
-  const msg = statusReport.isClosed === true
+  const msg = reporter.taskReport.join('\n') + '\n\n'
+    + statusReport.isClosed === true
     ? `<bold>Closed<rst> <em>${workKey}<rst>.`
     : `<bold>Unable<rst> to close <em>${workKey}<rst>`
 
