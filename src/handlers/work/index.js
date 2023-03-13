@@ -9,7 +9,8 @@ import * as resumeHandler from './resume'
 import * as saveHandler from './save'
 import * as saveImpliedHandler from './save-implied'
 import * as startHandler from './start'
-import * as statusHandlers from './status'
+import * as statusHandler from './status'
+import * as statusImpliedHandler from './status-implied'
 import * as submitHandler from './submit'
 import * as submitImpliedHandler from './submit-implied'
 
@@ -22,7 +23,8 @@ const handlers = [
   saveHandler,
   saveImpliedHandler,
   startHandler,
-  statusHandlers,
+  statusHandler,
+  statusImpliedHandler,
   submitHandler,
   submitImpliedHandler,
   ...issueHandlers,

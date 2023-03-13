@@ -14,6 +14,8 @@ parameters = [
 const path = ['work', 'submit']
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
+  reporter = reporter.isolate()
+
   const cwd = req.get('X-CWD')
   if (cwd === undefined) { throw createError.BadRequest("Called 'work submit' with implied work, but 'X-CWD' header not found.") }
 
