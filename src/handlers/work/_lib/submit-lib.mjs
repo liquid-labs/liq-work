@@ -1,6 +1,6 @@
 import * as fsPath from 'node:path'
 
-import { determineOriginAndMain, verifyBranchInSync, verifyClean, workBranchName } from '@liquid-labs/git-toolkit'
+import { determineOriginAndMain, verifyBranchInSync, verifyClean } from '@liquid-labs/git-toolkit'
 import { determineGitHubLogin } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
@@ -47,8 +47,6 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
   }
 
   // inputs have ben normalized we are now ready to start verifying the repo state
-  const workBranch = workBranchName({ primaryIssueID : workUnit.issues[0].id })
-
   const setRemote = ({ isPrivate, projectPath }) => {
     let remote
     if (isPrivate === true) { ([remote] = determineOriginAndMain({ projectPath, reporter })) }
@@ -69,7 +67,7 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
       verifyClean({ projectPath, reporter })
     }
     if (noPush !== true) {
-      tryExec(`cd '${projectPath}' && git push ${remote} ${workBranch}`)
+      tryExec(`cd '${projectPath}' && git push ${remote} ${workKey}`)
     }
     verifyBranchInSync({ branch : workKey, description : 'work', projectPath, remote, reporter })
   }
@@ -86,33 +84,33 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
     cleanupQAFiles({ projectPath, reporter })
     // now we need to push the updates to the remote
     const remote = setRemote({ isPrivate, projectPath })
-    tryExec(`cd '${projectPath}' && git push ${remote} ${workBranch}`)
+    tryExec(`cd '${projectPath}' && git push ${remote} ${workKey}`)
 
     const octocache = new Octocache({ authToken })
 
     let head
     if (isPrivate === true) {
-      head = workBranch
+      head = workKey
     }
     else {
       const ghUser = await determineGitHubLogin({ authToken })
-      head = `${ghUser.login}:${workBranch}`
+      head = `${ghUser.login}:${workKey}`
     }
 
     const openPRs = await octocache.paginate(`GET /repos/${org}/${project}/pulls`, { head, state : 'open' })
     if (openPRs.length > 0) { // really, should (and I think can) only be one, but this is the better question anyway
-      reporter.push(`Project <em>${projectFQN}<rst> branch <code>${workBranch}<rst> PR <bold>extant and open<rst>; pushing updates...`)
+      reporter.push(`Project <em>${projectFQN}<rst> branch <code>${workKey}<rst> PR <bold>extant and open<rst>; pushing updates...`)
       let remote
       if (isPrivate === true) { ([remote] = determineOriginAndMain({ projectPath, reporter })) }
       else { remote = WORKSPACE }
-      tryExec(`cd '${projectPath}' && git push ${remote} ${workBranch}`)
+      tryExec(`cd '${projectPath}' && git push ${remote} ${workKey}`)
 
       for (const pr of openPRs) {
         prURLs.push(`${GH_BASE_URL}/${org}/${project}/pull/${pr.number}`)
       }
     }
     else { // we create the PR
-      reporter.push(`Creating PR for <em>${projectFQN}<rst> branch <code>${workBranch}<rst>...`)
+      reporter.push(`Creating PR for <em>${projectFQN}<rst> branch <code>${workKey}<rst>...`)
       // build up the PR body
       let body = 'Pull request '
 
@@ -132,7 +130,7 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
         body += '\n\nRelated projects: '
         body += otherProjects.map(({ name: otherProjFQN }) =>
           `[${otherProjFQN}](${GH_BASE_URL}/${otherProjFQN}) `
-              + `([PRs](${GH_BASE_URL}/${otherProjFQN}/pulls?q=head%3A${encodeURIComponent(workBranch)}))`
+              + `([PRs](${GH_BASE_URL}/${otherProjFQN}/pulls?q=head%3A${encodeURIComponent(workKey)}))`
         )
           .join(', ')
       }
