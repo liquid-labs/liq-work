@@ -23,14 +23,15 @@
   "dependencies": {
     "@liquid-labs/federated-json": "^1.0.0-alpha.33",
     "@liquid-labs/git-toolkit": "^1.0.0-alpha.8",
-    "@liquid-labs/github-toolkit": "file:.yalc/@liquid-labs/github-toolkit",
+    "@liquid-labs/github-toolkit": "^1.0.0-alpha.7",
     "@liquid-labs/http-smart-response": "^1.0.0-alpha.3",
     "@liquid-labs/liq-credentials-db": "file:.yalc/@liquid-labs/liq-credentials-db",
     "@liquid-labs/liq-handlers-lib": "^1.0.0-alpha.13",
     "@liquid-labs/liq-projects-lib": "file:.yalc/@liquid-labs/liq-projects-lib",
     "@liquid-labs/liq-qa-lib": "file:.yalc/@liquid-labs/liq-qa-lib",
-    "@liquid-labs/octocache": "file:.yalc/@liquid-labs/octocache",
+    "@liquid-labs/octocache": "^1.0.0-alpha.4",
     "@liquid-labs/shell-toolkit": "^1.0.0-alpha.3",
+    "@liquid-labs/terminal-text": "^1.0.0-alpha.1",
     "core-js-pure": "^3.28.0",
     "octokit": "^2.0.14"
   },
