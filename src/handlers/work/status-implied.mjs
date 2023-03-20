@@ -4,7 +4,7 @@ import { determineCurrentBranch } from '@liquid-labs/git-toolkit'
 
 import { doStatus, getStatusEndpointParameters } from './_lib/status-lib'
 
-const { help, method, parameters } = getStatusEndpointParameters({ workDesc : 'indicated' })
+const { help, method, parameters } = getStatusEndpointParameters({ workDesc : 'implied' })
 
 const path = ['work', 'status']
 

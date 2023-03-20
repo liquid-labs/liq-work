@@ -1,54 +1,15 @@
-import { httpSmartResponse } from '@liquid-labs/http-smart-response'
+import { doClean, getCleanEndpointParameters } from './_lib/clean-lib'
 
-import { commonCleanParameters } from './_lib/common-clean-parameters'
-import { cleanWorkArtifacts } from './_lib/clean-work-artifacts'
+const { help, method, parameters } = getCleanEndpointParameters({ workDesc : 'named' })
 
-const help = {
-  name        : 'Work clean',
-  summary     : 'Cleans work branches and records.',
-  description : `Cleans up the work branches and records associated with an eligable unit of work. By default, the local copy of remote main branches will be updated in order to provide up-to-date information on the status in order to determine whether the work artifacts can be cleaned (removed). This can be supressed with the \`noFetch\` option.
-
-See also 'work XXX status' and 'work XXX detail' for basic static information.`
-}
-
-const method = 'put'
 const path = ['work', ':workKey', 'clean']
-const parameters = [...commonCleanParameters]
-Object.freeze(parameters)
 
 const func = ({ app, cache, model, reporter }) => async(req, res) => {
   reporter = reporter.isolate()
 
-  const {
-    noCloseWork = false,
-    noDeleteBranches = false,
-    noFetch = false,
-    noUpdateLocal = false,
-    workKey
-  } = req.vars
+  const { workKey } = req.vars
 
-  const closeWork = !noCloseWork
-  const deleteBranches = !noDeleteBranches
-  const updateLocal = !noUpdateLocal
-
-  const statusReport = await cleanWorkArtifacts({
-    allPulls : false,
-    app,
-    cache,
-    closeWork,
-    deleteBranches,
-    noFetch,
-    reporter,
-    updateLocal,
-    workKey
-  })
-
-  const msg = reporter.taskReport.join('\n') + '\n\n'
-    + statusReport.isClosed === true
-    ? `<bold>Closed<rst> <em>${workKey}<rst>.`
-    : `<bold>Unable<rst> to close <em>${workKey}<rst>`
-
-  httpSmartResponse({ msg, req, res })
+  doClean({ app, cache, reporter, req, res, workKey })
 }
 
 export { func, help, parameters, path, method }

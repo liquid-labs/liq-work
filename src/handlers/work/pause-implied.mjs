@@ -1,6 +1,6 @@
 import { getPauseEndpointParams, doPause } from './_lib/pause-lib'
 
-const { help, method, parameters } = getPauseEndpointParams({ descIntro : 'current' })
+const { help, method, parameters } = getPauseEndpointParams({ descIntro : 'implied' })
 
 const path = ['work', 'pause']
 
