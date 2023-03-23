@@ -1,5 +1,7 @@
 import * as fsPath from 'node:path'
 
+import createError from 'http-errors'
+
 import { determineOriginAndMain, verifyBranchInSync, verifyClean } from '@liquid-labs/git-toolkit'
 import { determineGitHubLogin } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
@@ -8,14 +10,16 @@ import { cleanupQAFiles, runQA, saveQAFiles } from '@liquid-labs/liq-qa-lib'
 import { Octocache } from '@liquid-labs/octocache'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
+import { answerSetToMd } from './answer-set-to-md'
 import { GH_BASE_URL, WORKSPACE } from './constants'
 import { determineProjects } from './determine-projects'
+import { prepareQuestionsFromControls } from './prepare-questions-from-controls'
 import { WorkDB } from './work-db'
 
-const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey }) => {
+const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, workKey }) => {
   reporter = reporter.isolate()
 
-  const { dirtyOK, noPush = false } = req.vars
+  const { answers, dirtyOK, noPush = false } = req.vars
 
   const credDB = new CredentialsDB({ app, cache })
   const authToken = credDB.getToken(purposes.GITHUB_API)
@@ -25,6 +29,8 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
   let workUnit;
   ([projects, workKey, workUnit] =
     await determineProjects({ all, cliEndpoint : 'work submit', projects, reporter, req, workDB, workKey }))
+  // map projects to array of project entries ({ name, private })
+  projects = projects.map((p) => workUnit.projects.find((wup) => wup.name === p))
 
   let { assignees, closes, closeTarget, noBrowse = false, noCloses = false } = req.vars
 
@@ -32,9 +38,6 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
   if (assignees === undefined) {
     assignees = [(await determineGitHubLogin({ authToken })).login]
   }
-
-  // map projects to array of project entries ({ name, private })
-  projects = projects.map((p) => workUnit.projects.find((wup) => wup.name === p))
 
   // we can now check if we are closing issues and which issues to close
   // because we de-duped, the lists would have equiv length our working set named all
@@ -70,8 +73,56 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
       tryExec(`cd '${projectPath}' && git push ${remote} ${workKey}`)
     }
     verifyBranchInSync({ branch : workKey, description : 'work', projectPath, remote, reporter })
+
+    runQA({ projectPath, reporter })
   }
   // we are ready to generate QA files and submit work
+
+  // next, we go through the submitter attestations; we handle this here so that if there's some other reason why the
+  // submit would fail, the user doesn't have to go through the questions first
+  if (answers === undefined) {
+    // we iterate over the projects
+    const interogationBundles = projects.map(({ name: projectFQN }) => {
+      const [orgKey] = projectFQN.split('/')
+      const org = model.orgs[orgKey]
+      const controlSetMap = org.innerState.controlsMap['work-submit-controls']
+
+      if (controlSetMap === undefined) { return {} }
+      else {
+        const title = `Project ${projectFQN} submission`
+
+        const questionBundle = prepareQuestionsFromControls({ title, key : projectFQN, controlSetMap })
+
+        const { varsReferenced } = questionBundle
+        const env = {}
+        for (const v of varsReferenced) {
+          const value = /* org.projects.get(XXX).getSetting() || */ org.getSetting(`controls.work.submit.${v}`)
+          if (value !== undefined) {
+            env[v] = value
+          }
+        }
+        questionBundle.env = env
+
+        return questionBundle
+      }
+    })
+
+    if (interogationBundles.some((ib) => Object.keys(ib).length > 0)) {
+      res
+        .type('application/json')
+        .set('X-Question-and-Answer', 'true')
+        .send(interogationBundles)
+
+      return
+    }
+    // else, there are no questions to ask, let's move on
+  } // if (answers === undefined); else:
+  const answerData = JSON.parse(answers || '{}')
+  for (const { name: projectFQN } of projects) {
+    if (!answerData.some((a) => a.key === projectFQN)) {
+      throw createError.BadRequest(`Missing attestation results (qna answers) for project '${projectFQN}'.`)
+    }
+  }
 
   const prURLs = []
   const prCalls = []
@@ -79,7 +130,6 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
     const [org, project] = projectFQN.split('/')
     const projectPath = fsPath.join(app.liq.playground(), org, project)
 
-    runQA({ projectPath, reporter })
     saveQAFiles({ projectPath, reporter })
     cleanupQAFiles({ projectPath, reporter })
     // now we need to push the updates to the remote
@@ -112,28 +162,9 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
     else { // we create the PR
       reporter.push(`Creating PR for <em>${projectFQN}<rst> branch <code>${workKey}<rst>...`)
       // build up the PR body
-      let body = 'Pull request '
 
-      body += projectFQN === closeTarget ? 'to' : 'in support of issues'
-      body += closes.length > 1 ? ': \n* ' : ' '
-      body += closes
-        .map((i) => {
-          const [o, p, n] = i.split('/')
-          const issueRef = `${o}/${p}` === project ? `#${n}` : `${o}/${p}#${n}`
-          return projectFQN === closeTarget
-            ? `resolve ${issueRef}`
-            : `[${issueRef}](${GH_BASE_URL}/${o}/${p}/issues/${n})`
-        })
-        .join('\n* ')
-      if (projects.length > 1) {
-        const otherProjects = projects.filter((p) => p.name !== projectFQN)
-        body += '\n\nRelated projects: '
-        body += otherProjects.map(({ name: otherProjFQN }) =>
-          `[${otherProjFQN}](${GH_BASE_URL}/${otherProjFQN}) `
-              + `([PRs](${GH_BASE_URL}/${otherProjFQN}/pulls?q=head%3A${encodeURIComponent(workKey)}))`
-        )
-          .join(', ')
-      }
+      const /* project */ answerSet = answerData.find((a) => a.key === projectFQN)
+      const body = await answerSetToMd({ answerSet, authToken, closes, closeTarget, projectFQN, projects, workKey })
 
       const repoData = await octocache.request(`GET /repos/${org}/${project}`)
       const base = repoData.default_branch
@@ -181,6 +212,10 @@ The close target is:
     },
     method     : 'post',
     parameters : [
+      {
+        name        : 'answers',
+        description : 'A JSON representation of the attestation query results, if any. If not provided, then, where there are controls to be implemented, the process will request the appropriate answers and then bail out, expectin the request to be re-submitted with the answers provided.'
+      },
       {
         name         : 'assignees',
         isMultivalue : true,

@@ -23,7 +23,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
 
   const { all, projects } = req.vars
 
-  await doSubmit({ all, app, cache, projects, reporter, req, res, workKey })
+  await doSubmit({ all, app, cache, model, projects, reporter, req, res, workKey })
 }
 
 export { func, help, parameters, path, method }
