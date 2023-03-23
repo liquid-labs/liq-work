@@ -7,6 +7,8 @@ import * as cleanHandler from './clean'
 import * as cleanImpliedHandler from './clean-implied'
 import * as pauseHandler from './pause'
 import * as pauseImpliedHandler from './pause-implied'
+import * as qaHandler from './qa'
+import * as qaImpliedHandler from './qa-implied'
 import * as resumeHandler from './resume'
 import * as saveHandler from './save'
 import * as saveImpliedHandler from './save-implied'
@@ -23,6 +25,8 @@ const handlers = [
   cleanImpliedHandler,
   pauseHandler,
   pauseImpliedHandler,
+  qaHandler,
+  qaImpliedHandler,
   resumeHandler,
   saveHandler,
   saveImpliedHandler,
