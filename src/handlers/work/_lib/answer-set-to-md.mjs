@@ -16,8 +16,6 @@ const answerSetToMd = async({
 
   const githubLogin = (await determineGitHubLogin({ authToken })).login
 
-  console.log('qaFileLinkIndex (answerSetToMd):', qaFileLinkIndex)
-
   const qaLinksMd = Object.keys(qaFileLinkIndex).reduce((acc, key) => {
     const { fileType, url } = qaFileLinkIndex[key]
     acc.push(`- [${fileType} record](${url})`)
