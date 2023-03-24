@@ -87,8 +87,6 @@ const getSaveEndpointParams = ({ descIntro }) => {
           const impliedProjectFQN = impOrg + '/' + impProj
           workKey = workKey || determineCurrentBranch({ projectPath : currDir })
 
-          console.log('in the options func! lastOptionValue:', lastOptionValue, 'impliedProjectFQN:', impliedProjectFQN) // DEBUG
-
           const workDB = new WorkDB({ app, cache })
 
           const projectOptions = () => workDB.requireData(workKey).projects
@@ -145,17 +143,13 @@ const getSaveEndpointParams = ({ descIntro }) => {
           }
 
           if (!lastOptionValue || lastOptionValue.trim() === '') {
-            console.log('path A') // DEBUG
             return projectOptions().concat(await fileOptions({ projectFQN : impliedProjectFQN }))
           }
           else if (lastOptionValue.indexOf(':') !== -1) {
-            console.log('path B') // DEBUG
             const [projectFQN, relPath] = lastOptionValue.split(':')
             return await fileOptions({ projectFQN, relPath })
           }
           else {
-            console.log('path C; lastOptionValue:', lastOptionValue) // DEBUG
-            console.log('projectOptions:', projectOptions()) // DEBUG
             return projectOptions().filter((p) => p.startsWith(lastOptionValue))
               .concat(await fileOptions({ projectFQN : impliedProjectFQN, relPath : lastOptionValue }))
           }

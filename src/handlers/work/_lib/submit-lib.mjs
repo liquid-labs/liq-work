@@ -95,7 +95,6 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
         const projectPath = fsPath.join(app.liq.playground(), orgKey, project)
 
         const qaFileLinkIndex = await getGitHubQAFileLinks({ gitHubOrg, projectPath, reporter })
-        console.log('qaFileLinkIndex:', qaFileLinkIndex) // DEBUG
 
         const questionBundle = prepareQuestionsFromControls({ title, key : projectFQN, controlSetMap })
 
@@ -109,13 +108,10 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
         }
 
         for (const qaFile of Object.keys(qaFileLinkIndex)) {
-          console.log(`processing qaFile ${qaFile}...`) // DEBUG
           const { fileType, url } = qaFileLinkIndex[qaFile]
           const urlParam = 'CHANGES_' + fileType.replaceAll(/ /g, '_').toUpperCase() + '_REPORT_URL'
           env[urlParam] = url
         }
-
-        console.log('env:', env) // DEBUG
 
         return questionBundle
       }
