@@ -2,10 +2,27 @@ import { determineGitHubLogin } from '@liquid-labs/github-toolkit'
 
 import { GH_BASE_URL } from './constants'
 
-const answerSetToMd = async({ answerSet, authToken, closes, closeTarget, projectFQN, projects, workKey }) => {
+const answerSetToMd = async({
+  answerSet,
+  authToken,
+  closes,
+  closeTarget,
+  projectFQN,
+  projects,
+  qaFileLinkIndex,
+  workKey
+}) => {
   const { results } = answerSet
 
   const githubLogin = (await determineGitHubLogin({ authToken })).login
+
+  console.log('qaFileLinkIndex (answerSetToMd):', qaFileLinkIndex)
+
+  const qaLinksMd = Object.keys(qaFileLinkIndex).reduce((acc, key) => {
+    const { fileType, url } = qaFileLinkIndex[key]
+    acc.push(`- [${fileType} record](${url})`)
+    return acc
+  }, []).join('\n')
 
   let md = 'Pull request '
 
@@ -35,6 +52,10 @@ const answerSetToMd = async({ answerSet, authToken, closes, closeTarget, project
 ## Instructions
 
 Review all code changes. Verify the submitter attestations belowe, checking off each statement to indicate that you have reviewed the statement and it is true to the best of your knowledge. If you do not agree with or are unsure of a statement, then add a comment describing your questions or concerns and contact the submitter @${githubLogin} for clarification.
+
+## QA files
+
+${qaLinksMd}
 
 ## Submitter attestations
 

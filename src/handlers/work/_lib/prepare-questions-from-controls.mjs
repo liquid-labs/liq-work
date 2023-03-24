@@ -3,8 +3,6 @@ import createError from 'http-errors'
 import { extractParameters } from '@liquid-labs/condition-eval'
 
 const prepareQuestionsFromControls = ({ title, key, controlSetMap }) => {
-  console.log(controlSetMap) // DEBUG
-
   const controlSetBurndownList = Object.keys(controlSetMap)
   const controlSetsProcessed = []
   const questionBundle = {
@@ -12,13 +10,13 @@ const prepareQuestionsFromControls = ({ title, key, controlSetMap }) => {
     key,
     questions      : [],
     mappings       : [],
-    varsReferenced : []
+    varsReferenced : [],
+    env            : {}
   }
 
   for (let questionBundleSubSet = processNextControlSet({ controlSetMap, controlSetBurndownList, controlSetsProcessed });
     questionBundleSubSet !== null;
     questionBundleSubSet = processNextControlSet({ controlSetMap, controlSetBurndownList, controlSetsProcessed })) {
-    console.log('questionBundleSubSet:', questionBundleSubSet) // DEBUG
     questionBundle.questions.push(...questionBundleSubSet.questions)
     questionBundle.mappings.push(...questionBundleSubSet.mappings)
     questionBundle.varsReferenced.push(...questionBundleSubSet.varsReferenced)

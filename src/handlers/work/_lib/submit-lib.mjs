@@ -6,7 +6,7 @@ import { determineOriginAndMain, verifyBranchInSync, verifyClean } from '@liquid
 import { determineGitHubLogin } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
-import { cleanupQAFiles, runQA, saveQAFiles } from '@liquid-labs/liq-qa-lib'
+import { cleanupQAFiles, getGitHubQAFileLinks, runQA, saveQAFiles } from '@liquid-labs/liq-qa-lib'
 import { Octocache } from '@liquid-labs/octocache'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
@@ -82,30 +82,44 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
   // submit would fail, the user doesn't have to go through the questions first
   if (answers === undefined) {
     // we iterate over the projects
-    const interogationBundles = projects.map(({ name: projectFQN }) => {
+    const interogationBundles = await Promise.all(projects.map(async({ name: projectFQN }) => {
       const [orgKey] = projectFQN.split('/')
       const org = model.orgs[orgKey]
+      const gitHubOrg = org.requireSetting('core.github.ORG_NAME')
       const controlSetMap = org.innerState.controlsMap['work-submit-controls']
 
       if (controlSetMap === undefined) { return {} }
       else {
         const title = `Project ${projectFQN} submission`
+        const [, project] = projectFQN.split('/')
+        const projectPath = fsPath.join(app.liq.playground(), orgKey, project)
+
+        const qaFileLinkIndex = await getGitHubQAFileLinks({ gitHubOrg, projectPath, reporter })
+        console.log('qaFileLinkIndex:', qaFileLinkIndex) // DEBUG
 
         const questionBundle = prepareQuestionsFromControls({ title, key : projectFQN, controlSetMap })
 
-        const { varsReferenced } = questionBundle
-        const env = {}
+        const { env, varsReferenced } = questionBundle
+
         for (const v of varsReferenced) {
           const value = /* org.projects.get(XXX).getSetting() || */ org.getSetting(`controls.work.submit.${v}`)
           if (value !== undefined) {
             env[v] = value
           }
         }
-        questionBundle.env = env
+
+        for (const qaFile of Object.keys(qaFileLinkIndex)) {
+          console.log(`processing qaFile ${qaFile}...`) // DEBUG
+          const { fileType, url } = qaFileLinkIndex[qaFile]
+          const urlParam = 'CHANGES_' + fileType.replaceAll(/ /g, '_').toUpperCase() + '_REPORT_URL'
+          env[urlParam] = url
+        }
+
+        console.log('env:', env) // DEBUG
 
         return questionBundle
       }
-    })
+    }))
 
     if (interogationBundles.some((ib) => Object.keys(ib).length > 0)) {
       res
@@ -127,10 +141,13 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
   const prURLs = []
   const prCalls = []
   for (const { name: projectFQN, private: isPrivate } of projects) {
-    const [org, project] = projectFQN.split('/')
-    const projectPath = fsPath.join(app.liq.playground(), org, project)
+    const [orgKey, project] = projectFQN.split('/')
+    const org = model.orgs[orgKey]
+    const gitHubOrg = org.requireSetting('core.github.ORG_NAME')
+    const projectPath = fsPath.join(app.liq.playground(), orgKey, project)
 
-    saveQAFiles({ projectPath, reporter })
+    const qaFiles = await saveQAFiles({ projectPath, reporter })
+    const qaFileLinkIndex = await getGitHubQAFileLinks({ gitHubOrg, projectPath, reporter, qaFiles })
     cleanupQAFiles({ projectPath, reporter })
     // now we need to push the updates to the remote
     const remote = setRemote({ isPrivate, projectPath })
@@ -147,7 +164,7 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
       head = `${ghUser.login}:${workKey}`
     }
 
-    const openPRs = await octocache.paginate(`GET /repos/${org}/${project}/pulls`, { head, state : 'open' })
+    const openPRs = await octocache.paginate(`GET /repos/${gitHubOrg}/${project}/pulls`, { head, state : 'open' })
     if (openPRs.length > 0) { // really, should (and I think can) only be one, but this is the better question anyway
       reporter.push(`Project <em>${projectFQN}<rst> branch <code>${workKey}<rst> PR <bold>extant and open<rst>; pushing updates...`)
       let remote
@@ -156,7 +173,7 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
       tryExec(`cd '${projectPath}' && git push ${remote} ${workKey}`)
 
       for (const pr of openPRs) {
-        prURLs.push(`${GH_BASE_URL}/${org}/${project}/pull/${pr.number}`)
+        prURLs.push(`${GH_BASE_URL}/${gitHubOrg}/${project}/pull/${pr.number}`)
       }
     }
     else { // we create the PR
@@ -164,12 +181,21 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
       // build up the PR body
 
       const /* project */ answerSet = answerData.find((a) => a.key === projectFQN)
-      const body = await answerSetToMd({ answerSet, authToken, closes, closeTarget, projectFQN, projects, workKey })
+      const body = await answerSetToMd({
+        answerSet,
+        authToken,
+        closes,
+        closeTarget,
+        projectFQN,
+        projects,
+        qaFileLinkIndex,
+        workKey
+      })
 
-      const repoData = await octocache.request(`GET /repos/${org}/${project}`)
+      const repoData = await octocache.request(`GET /repos/${gitHubOrg}/${project}`)
       const base = repoData.default_branch
 
-      prCalls.push(doPR({ base, body, head, octocache, org, project, prURLs, workUnit }))
+      prCalls.push(doPR({ base, body, head, octocache, org : orgKey, project, prURLs, workUnit }))
     }
   }
 
