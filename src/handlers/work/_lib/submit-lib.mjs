@@ -182,6 +182,7 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
         authToken,
         closes,
         closeTarget,
+        org,
         projectFQN,
         projects,
         qaFileLinkIndex,
