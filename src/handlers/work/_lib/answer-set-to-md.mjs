@@ -7,6 +7,7 @@ const answerSetToMd = async({
   authToken,
   closes,
   closeTarget,
+  org,
   projectFQN,
   projects,
   qaFileLinkIndex,
@@ -58,10 +59,16 @@ ${qaLinksMd}
 ## Submitter attestations
 
 ***To be verified by reviewer.***\n\n`
+
+  const verifyEach = org.getSetting('controls.work.submit.REVIEW_EACH_ATTESTATION') || false
   for (const { disposition, parameter, prompt, rawAnswer, value } of results) {
     if (prompt !== undefined && disposition === 'answered') { // we only need to print out the answered questions
-      md += `- [ ] ${prompt.replaceAll(/<(?:em|h1|h2|code|rst)>/g, '')} ${rawAnswer} (_${parameter}=${value}_)\n`
+      md += `- ${verifyEach === true ? '[ ] ' : ''}${prompt.replaceAll(/<(?:em|h1|h2|code|rst)>/g, '')} ${rawAnswer} (_${parameter}=${value}_)\n`
     }
+  }
+
+  if (verifyEach === false) {
+    md += ' - [ ] I have reviewed and verified the above are true to the best of my knowledge.'
   }
 
   return md
