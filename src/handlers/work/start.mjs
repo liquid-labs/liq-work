@@ -18,12 +18,6 @@ const help = {
 const method = 'post'
 const path = ['work', 'start']
 const parameters = [
-  /* TODO
-  {
-    name : 'allowUncomitted',
-    isBoolean: true,
-    description: "By default, the 'start work' process will fail if any of the target repos are unclean. Setting `allowUncomitted` will proceed if there are uncommitted files and the repos are otherwise clean."
-  }, */
   {
     name         : 'projects',
     isMultivalue : true,
