@@ -6,6 +6,7 @@ import { determineOriginAndMain, verifyBranchInSync, verifyClean } from '@liquid
 import { determineGitHubLogin } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
+import { determineCurrentMilestone } from '@liquid-labs/liq-projects-lib'
 import { cleanupQAFiles, getGitHubQAFileLinks, runQA, saveQAFiles } from '@liquid-labs/liq-qa-lib'
 import { Octocache } from '@liquid-labs/octocache'
 import { tryExec } from '@liquid-labs/shell-toolkit'
@@ -134,8 +135,8 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
     }
   }
 
+  const prCalls = [] // collects PR create promises so we can kick off multiple in parallel
   const prURLs = []
-  const prCalls = []
   for (const { name: projectFQN, private: isPrivate } of projects) {
     const [orgKey, project] = projectFQN.split('/')
     const org = model.orgs[orgKey]
@@ -144,7 +145,7 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
 
     const qaFiles = await saveQAFiles({ projectPath, reporter })
     const qaFileLinkIndex = await getGitHubQAFileLinks({ gitHubOrg, projectPath, reporter, qaFiles })
-    cleanupQAFiles({ projectPath, reporter })
+    await cleanupQAFiles({ projectPath, reporter })
     // now we need to push the updates to the remote
     const remote = setRemote({ isPrivate, projectPath })
     tryExec(`cd '${projectPath}' && git push ${remote} ${workKey}`)
@@ -173,32 +174,29 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
       }
     }
     else { // we create the PR
-      reporter.push(`Creating PR for <em>${projectFQN}<rst> branch <code>${workKey}<rst>...`)
-      // build up the PR body
-
-      const /* project */ answerSet = answerData.find((a) => a.key === projectFQN)
-      const body = await answerSetToMd({
-        answerSet,
+      prCalls.push(createPR({
+        answerData,
+        app,
+        assignees,
         authToken,
+        cache,
         closes,
         closeTarget,
+        gitHubOrg,
+        head,
+        octocache,
         org,
         projectFQN,
         projects,
+        reporter,
         qaFileLinkIndex,
-        workKey
-      })
-
-      const repoData = await octocache.request(`GET /repos/${gitHubOrg}/${project}`)
-      const base = repoData.default_branch
-
-      prCalls.push(doPR({ base, body, head, octocache, org : orgKey, project, prURLs, workUnit }))
+        workKey,
+        workUnit
+      }))
     }
-  }
+  } // projects loop
 
-  if (prCalls.length > 0) {
-    await Promise.all(prCalls)
-  }
+  prURLs.push(...(await Promise.all(prCalls)))
 
   if (noBrowse !== true) {
     for (const url of prURLs) {
@@ -302,11 +300,57 @@ The close target is:
 
 // helper functions
 
-const doPR = async({ base, body, head, octocache, org, project, prURLs, workUnit }) => {
-  const pr = await octocache.request(
+const createPR = async({ // TODO: this siganure is redonk; we really want an async so we kick these off in parallel
+  // and generate the URL while the specific project data is in scope; so this form an effective parralel closures
+  // But we really should cleanup this redonk list...
+  answerData,
+  app,
+  assignees,
+  authToken,
+  cache,
+  closes,
+  closeTarget,
+  gitHubOrg,
+  head,
+  octocache,
+  org,
+  projectFQN,
+  projects,
+  reporter,
+  qaFileLinkIndex,
+  workKey,
+  workUnit
+}) => {
+  reporter.push(`Creating PR for <em>${projectFQN}<rst> branch <code>${workKey}<rst>...`)
+  // build up the PR body
+
+  const /* project */ answerSet = answerData.find((a) => a.key === projectFQN)
+  const bodyPromise = answerSetToMd({
+    answerSet,
+    authToken,
+    closes,
+    closeTarget,
+    org,
+    projectFQN,
+    projects,
+    qaFileLinkIndex,
+    workKey
+  })
+
+  const [, project] = projectFQN.split('/')
+
+  const milestonePromise = determineCurrentMilestone({ app, cache, gitHubOrg, project })
+
+  const repoPromise = octocache.request(`GET /repos/${gitHubOrg}/${project}`)
+
+  const [body, milestone, repoData] = await Promise.all([bodyPromise, milestonePromise, repoPromise])
+
+  const base = repoData.default_branch
+
+  const prData = await octocache.request(
     'POST /repos/{owner}/{repo}/pulls',
     {
-      owner : org,
+      owner : gitHubOrg,
       repo  : project,
       title : workUnit.description,
       body,
@@ -314,7 +358,44 @@ const doPR = async({ base, body, head, octocache, org, project, prURLs, workUnit
       base
     })
 
-  prURLs.push(`${GH_BASE_URL}/${org}/${project}/pull/${pr.number}`)
+  try {
+    await octocache.request('PATCH /repos/{owner}/{repo}/issues/{issueNumber}',
+      {
+        owner       : gitHubOrg,
+        repo        : project,
+        issueNumber : prData.number,
+        assignees,
+        milestone
+      })
+
+    const collaboratorsData = await octocache.paginate('GET /repos/{owner}/{repo}/collaborators', {
+      owner      : gitHubOrg,
+      repo       : project,
+      permission : 'triage'
+    })
+
+    const collaborators = collaboratorsData?.map((cd) => cd.login)
+
+    const possibleReviewers = collaborators.filter((r) => !assignees.includes(r))
+
+    const reviewSource = (possibleReviewers.length > 0 ? possibleReviewers : assignees)
+      .filter((r) => r !== prData.user.login) // the PR author cann't review the PR
+    if (reviewSource.length > 0) {
+      const reviewers = [reviewSource[Math.floor(Math.random() * reviewSource.length)]]
+
+      await octocache.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers', {
+        owner       : gitHubOrg,
+        repo        : project,
+        pull_number : prData.number,
+        reviewers
+      })
+    }
+  }
+  catch (e) { // we want to continue in the face of errors; as long as the PR was created, we will continue
+    reporter.push(`<warn>There were problems completing the PR ${gitHubOrg}/${project}/${prData.number}.<rst> Assignees, milestone, and/or reviewers may not be set.`)
+  }
+
+  return `${GH_BASE_URL}/${gitHubOrg}/${project}/pull/${prData.number}`
 }
 
 export { doSubmit, getSubmitEndpointParams }
