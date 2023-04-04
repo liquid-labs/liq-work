@@ -29,7 +29,7 @@
     "@liquid-labs/liq-credentials-db": "^1.0.0-alpha.3",
     "@liquid-labs/liq-handlers-lib": "^1.0.0-alpha.13",
     "@liquid-labs/liq-projects-lib": "^1.0.0-alpha.5",
-    "@liquid-labs/liq-qa-lib": "^1.0.0-alpha.6",
+    "@liquid-labs/liq-qa-lib": "^1.0.0-alpha.8",
     "@liquid-labs/octocache": "^1.0.0-alpha.4",
     "@liquid-labs/shell-toolkit": "^1.0.0-alpha.3",
     "@liquid-labs/terminal-text": "^1.0.0-alpha.1",
