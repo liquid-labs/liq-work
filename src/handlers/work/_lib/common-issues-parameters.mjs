@@ -1,4 +1,4 @@
-const commonIssuesParameters = [
+const commonIssuesParameters = () => [
   {
     name         : 'issues',
     required     : true,
