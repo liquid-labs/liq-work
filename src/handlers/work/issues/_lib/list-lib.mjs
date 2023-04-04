@@ -44,8 +44,8 @@ const doListIssues = async({ app, cache, reporter, req, res, workKey }) => {
 
   if (browseEach === true) {
     for (const { id } of workData.issues) {
-      const [ ghOrg, project, number ] = id.split('/')
-      
+      const [ghOrg, project, number] = id.split('/')
+
       tryExec(`open 'https://github.com/${ghOrg}/${project}/issues/${number}'`)
     }
   }
