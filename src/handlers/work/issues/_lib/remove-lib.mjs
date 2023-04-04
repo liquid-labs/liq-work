@@ -53,7 +53,7 @@ const getIssuesRemoveEndpointParameters = ({ workDesc }) => {
       isBoolean   : true,
       description : "Setting `noUnlabel` to true keeps the 'claim label' on the issue rather than the default behavior of removing it."
     },
-    ...commonIssuesParameters
+    ...commonIssuesParameters()
   ]
   parameters.find((p) => p.name === 'issues').optionsFunc = issueOptionsFunc
   Object.freeze(parameters)
