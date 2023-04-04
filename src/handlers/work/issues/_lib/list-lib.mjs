@@ -43,15 +43,16 @@ const doListIssues = async({ app, cache, reporter, req, res, workKey }) => {
   const workData = await workDB.getData(workKey)
 
   if (browseEach === true) {
-    for (const issue of workData.projects) {
-      const projectFQN = issue.name
-      tryExec(`open 'https://github.com/${projectFQN}'`)
+    for (const { id } of workData.issues) {
+      const [ghOrg, project, number] = id.split('/')
+
+      tryExec(`open 'https://github.com/${ghOrg}/${project}/issues/${number}'`)
     }
   }
 
   formatOutput({
     basicTitle : `${workKey} Projects`,
-    data       : workData.projects,
+    data       : workData.issues,
     allFields,
     defaultFields,
     mdFormatter,
