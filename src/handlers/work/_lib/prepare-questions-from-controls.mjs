@@ -8,8 +8,7 @@ const prepareQuestionsFromControls = ({ title, key, controlSetMap }) => {
   const questionBundle = {
     title,
     key,
-    questions      : [],
-    mappings       : [],
+    actions        : [],
     varsReferenced : [],
     env            : {}
   }
@@ -17,10 +16,11 @@ const prepareQuestionsFromControls = ({ title, key, controlSetMap }) => {
   for (let questionBundleSubSet = processNextControlSet({ controlSetMap, controlSetBurndownList, controlSetsProcessed });
     questionBundleSubSet !== null;
     questionBundleSubSet = processNextControlSet({ controlSetMap, controlSetBurndownList, controlSetsProcessed })) {
-    questionBundle.questions.push(...questionBundleSubSet.questions)
-    questionBundle.mappings.push(...questionBundleSubSet.mappings)
+    questionBundle.actions.push(...questionBundleSubSet.actions)
     questionBundle.varsReferenced.push(...questionBundleSubSet.varsReferenced)
   }
+
+  questionBundle.actions.push({ "review": "questions" })
 
   // filter out duplicate vars
   questionBundle.varsReferenced = questionBundle.varsReferenced.filter((v, i, arr) => i === arr.indexOf(v))
@@ -47,43 +47,36 @@ const processNextControlSet = ({ controlSetMap, controlSetBurndownList, controlS
 }
 
 const processControls = ({ controls }) => {
-  const allQuestions = []
-  const allMappings = []
-  for (const { questions, mappings } of controls) {
-    if (questions !== undefined) { allQuestions.push(...questions) }
-    if (mappings !== undefined) { allMappings.push(...mappings) }
+  const allActions = []
+  for (const { actions } of controls) {
+    if (actions !== undefined) { allActions.push(...actions) }
   }
 
   return {
-    questions      : allQuestions,
-    mappings       : allMappings,
-    varsReferenced : extractAllParameters({ mappings : allMappings, questions : allQuestions })
+    actions      : allActions,
+    varsReferenced : extractAllParameters({ actions : allActions })
   }
 }
 
-const extractAllParameters = ({ mappings, questions }) => {
+const extractAllParameters = ({ actions }) => {
   const allVars = []
-  for (const { parameter, condition, elseSource, mappings } of questions) {
-    allVars.push(parameter)
+  for (const { parameter, condition, elseSource, maps } of actions) {
+    if (parameter !== undefined) { allVars.push(parameter) }
     if (condition !== undefined) { allVars.push(...extractParameters({ expression : condition })) }
     if (elseSource !== undefined) { allVars.push(...extractParameters({ expression : elseSource })) }
-    allVars.push(...extractMappingParamters(mappings)) // this is the for-local mappings (from question)
+    if (maps !== undefined) {
+      allVars.push(...extractMappingParamters({ maps }))
+    }
   }
-
-  allVars.push(...extractMappingParamters(mappings)) // this is the function-local (global) mappings
 
   return allVars
 }
 
-const extractMappingParamters = (mappings = []) => {
+const extractMappingParamters = ({ maps }) => {
   const allVars = []
-  for (const { condition, maps } of mappings) {
-    if (condition !== undefined) { allVars.push(...extractParameters({ expression : condition })) }
-
-    for (const { parameter, source } of maps) {
-      allVars.push(parameter)
-      if (source !== undefined) { allVars.push(...extractParameters({ expression : source })) }
-    }
+  for (const { parameter, source } of maps) {
+    allVars.push(parameter)
+    if (source !== undefined) { allVars.push(...extractParameters({ expression : source })) }
   }
 
   return allVars
