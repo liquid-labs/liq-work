@@ -20,7 +20,7 @@ const prepareQuestionsFromControls = ({ title, key, controlSetMap }) => {
     questionBundle.varsReferenced.push(...questionBundleSubSet.varsReferenced)
   }
 
-  questionBundle.actions.push({ "review": "questions" })
+  questionBundle.actions.push({ review : 'questions' })
 
   // filter out duplicate vars
   questionBundle.varsReferenced = questionBundle.varsReferenced.filter((v, i, arr) => i === arr.indexOf(v))
@@ -53,7 +53,7 @@ const processControls = ({ controls }) => {
   }
 
   return {
-    actions      : allActions,
+    actions        : allActions,
     varsReferenced : extractAllParameters({ actions : allActions })
   }
 }
