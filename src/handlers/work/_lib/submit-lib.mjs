@@ -17,6 +17,9 @@ import { determineProjects } from './determine-projects'
 import { prepareQuestionsFromControls } from './prepare-questions-from-controls'
 import { WorkDB } from './work-db'
 
+/**
+ * Analyzes current state and if branch is clean and up-to-date, creates a PR or updates the existing PR. Will gather * answers for `work-submit-controls` if not included in the request.
+ */
 const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, workKey }) => {
   reporter = reporter.isolate()
 
@@ -314,7 +317,9 @@ The close target is:
 }
 
 // helper functions
-
+/**
+ * Creates a new PR and returns a promise resolving to the PR URL.
+ */
 const createPR = async({ // TODO: this siganure is redonk; we really want an async so we kick these off in parallel
   // and generate the URL while the specific project data is in scope; so this form an effective parralel closures
   // But we really should cleanup this redonk list...
@@ -413,6 +418,9 @@ const createPR = async({ // TODO: this siganure is redonk; we really want an asy
   return `${GH_BASE_URL}/${gitHubOrg}/${project}/pull/${prData.number}`
 }
 
+/**
+ * Updates the PR body and returns a promise resolving to the PR URL.
+ */
 const updatePR = async({
   answerData,
   authToken,
