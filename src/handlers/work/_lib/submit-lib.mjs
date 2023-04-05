@@ -17,6 +17,9 @@ import { determineProjects } from './determine-projects'
 import { prepareQuestionsFromControls } from './prepare-questions-from-controls'
 import { WorkDB } from './work-db'
 
+/**
+ * Analyzes current state and if branch is clean and up-to-date, creates a PR or updates the existing PR. Will gather * answers for `work-submit-controls` if not included in the request.
+ */
 const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, workKey }) => {
   reporter = reporter.isolate()
 
@@ -71,6 +74,7 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
       verifyClean({ projectPath, reporter })
     }
     if (noPush !== true) {
+      reporter.push(`Pushing local '${workKey}' changes to remote...`)
       tryExec(`cd '${projectPath}' && git push ${remote} ${workKey}`)
     }
     verifyBranchInSync({ branch : workKey, description : 'work', projectPath, remote, reporter })
@@ -169,8 +173,22 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
       else { remote = WORKSPACE }
       tryExec(`cd '${projectPath}' && git push ${remote} ${workKey}`)
 
-      for (const pr of openPRs) {
-        prURLs.push(`${GH_BASE_URL}/${gitHubOrg}/${project}/pull/${pr.number}`)
+      for (const prData of openPRs) {
+        prCalls.push(updatePR({
+          answerData,
+          authToken,
+          closeTarget,
+          closes,
+          gitHubOrg,
+          octocache,
+          org,
+          prData,
+          projectFQN,
+          projects,
+          reporter,
+          qaFileLinkIndex,
+          workKey
+        }))
       }
     }
     else { // we create the PR
@@ -299,7 +317,9 @@ The close target is:
 }
 
 // helper functions
-
+/**
+ * Creates a new PR and returns a promise resolving to the PR URL.
+ */
 const createPR = async({ // TODO: this siganure is redonk; we really want an async so we kick these off in parallel
   // and generate the URL while the specific project data is in scope; so this form an effective parralel closures
   // But we really should cleanup this redonk list...
@@ -393,6 +413,58 @@ const createPR = async({ // TODO: this siganure is redonk; we really want an asy
   }
   catch (e) { // we want to continue in the face of errors; as long as the PR was created, we will continue
     reporter.push(`<warn>There were problems completing the PR ${gitHubOrg}/${project}/${prData.number}.<rst> Assignees, milestone, and/or reviewers may not be set.`)
+  }
+
+  return `${GH_BASE_URL}/${gitHubOrg}/${project}/pull/${prData.number}`
+}
+
+/**
+ * Updates the PR body and returns a promise resolving to the PR URL.
+ */
+const updatePR = async({
+  answerData,
+  authToken,
+  closes,
+  closeTarget,
+  gitHubOrg,
+  octocache,
+  org,
+  prData,
+  projectFQN,
+  projects,
+  reporter,
+  qaFileLinkIndex,
+  workKey
+}) => {
+  reporter.push(`Updating PR <code>${prData.number}<rst> for <em>${projectFQN}<rst> branch <code>${workKey}<rst>...`)
+  // build up the PR body
+
+  const answerSet = answerData.find((a) => a.key === projectFQN)
+  const body = await answerSetToMd({
+    answerSet,
+    authToken,
+    closes,
+    closeTarget,
+    org,
+    projectFQN,
+    projects,
+    qaFileLinkIndex,
+    workKey
+  })
+
+  const [, project] = projectFQN.split('/')
+
+  try {
+    await octocache.request('PATCH /repos/{owner}/{repo}/issues/{issueNumber}',
+      {
+        owner       : gitHubOrg,
+        repo        : project,
+        issueNumber : prData.number,
+        body
+      })
+  }
+  catch (e) { // we want to continue in the face of errors; as long as the PR was created, we will continue
+    reporter.push(`<warn>There were problems updating the PR ${gitHubOrg}/${project}/${prData.number}.<rst> Try submitting again or update manually.`)
   }
 
   return `${GH_BASE_URL}/${gitHubOrg}/${project}/pull/${prData.number}`
