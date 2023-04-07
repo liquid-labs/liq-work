@@ -33,11 +33,10 @@
     "@liquid-labs/octocache": "^1.0.0-alpha.4",
     "@liquid-labs/shell-toolkit": "^1.0.0-alpha.3",
     "@liquid-labs/terminal-text": "^1.0.0-alpha.1",
-    "core-js-pure": "^3.28.0",
     "octokit": "^2.0.14"
   },
   "devDependencies": {
-    "@liquid-labs/catalyst-scripts": "^1.0.0-alpha.57"
+    "@liquid-labs/catalyst-scripts-node-project": "^1.0.0-alpha.4"
   },
   "liq": {
     "packageType": "node|lib",

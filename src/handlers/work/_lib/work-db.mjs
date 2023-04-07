@@ -1,6 +1,5 @@
 import * as fsPath from 'node:path'
 
-import structuredClone from 'core-js-pure/actual/structured-clone'
 import createError from 'http-errors'
 
 import { readFJSON, writeFJSON } from '@liquid-labs/federated-json'
