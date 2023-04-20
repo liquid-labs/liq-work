@@ -85,7 +85,7 @@ const WorkDB = class WorkDB {
     if (noLink !== true) {
       // that's all projects across all units of work
       const allProjects = Object.keys(Object.values(this.#data)
-        .reduce((acc, wd) => { wd.projects.forEach(({ name }) => acc[name] = true); return acc}, {}))
+        .reduce((acc, wd) => { wd.projects.forEach(({ name }) => { acc[name] = true }); return acc }, {}))
       crossLinkDevProjects({ playground : app.liq.playground(), projects : allProjects, reporter })
     }
 
