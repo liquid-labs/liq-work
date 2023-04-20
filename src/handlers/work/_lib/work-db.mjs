@@ -82,8 +82,12 @@ const WorkDB = class WorkDB {
       }
     }
 
-    const allProjects = projects.concat(currProjects)
-    crossLinkDevProjects({ playground : app.liq.playground(), projects : allProjects, reporter })
+    if (noLink !== true) {
+      // that's all projects across all units of work
+      const allProjects = Object.keys(Object.values(this.#data)
+        .reduce((acc, wd) => { wd.projects.forEach(({ name }) => { acc[name] = true }); return acc }, {}))
+      crossLinkDevProjects({ playground : app.liq.playground(), projects : allProjects, reporter })
+    }
 
     return structuredClone(workData)
   }
