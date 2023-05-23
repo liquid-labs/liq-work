@@ -36,7 +36,7 @@
     "octokit": "^2.0.14"
   },
   "devDependencies": {
-    "@liquid-labs/catalyst-scripts-node-project": "^1.0.0-alpha.4"
+    "@liquid-labs/catalyst-scripts-node-project": "^1.0.0-alpha.15"
   },
   "liq": {
     "packageType": "node|lib",

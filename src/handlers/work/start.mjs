@@ -51,7 +51,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
 
   const githubLogin = (await determineGitHubLogin({ authToken })).login
 
-  await verifyIssuesAvailable({ authToken, availableFor: githubLogin, issues, noAutoAssign, reporter })
+  await verifyIssuesAvailable({ authToken, availableFor : githubLogin, issues, noAutoAssign, reporter })
   await claimIssues({ assignee, authToken, comment, issues, reporter })
 
   const workDB = new WorkDB({ app, authToken, model, reporter })
