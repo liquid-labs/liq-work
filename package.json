@@ -23,8 +23,8 @@
   "dependencies": {
     "@liquid-labs/condition-eval": "^1.0.0-alpha.17",
     "@liquid-labs/federated-json": "^1.0.0-alpha.33",
-    "@liquid-labs/git-toolkit": "^1.0.0-alpha.8",
-    "@liquid-labs/github-toolkit": "^1.0.0-alpha.7",
+    "@liquid-labs/git-toolkit": "^1.0.0-alpha.12",
+    "@liquid-labs/github-toolkit": "^1.0.0-alpha.8",
     "@liquid-labs/http-smart-response": "^1.0.0-alpha.3",
     "@liquid-labs/liq-credentials-db": "^1.0.0-alpha.3",
     "@liquid-labs/liq-handlers-lib": "^1.0.0-alpha.13",
@@ -36,7 +36,7 @@
     "octokit": "^2.0.14"
   },
   "devDependencies": {
-    "@liquid-labs/catalyst-scripts-node-project": "^1.0.0-alpha.4"
+    "@liquid-labs/catalyst-scripts-node-project": "^1.0.0-alpha.15"
   },
   "liq": {
     "packageType": "node|lib",

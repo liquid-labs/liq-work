@@ -12,7 +12,7 @@ const doAddProjects = async({ app, cache, model, reporter, req, res, workKey }) 
 
   const credDB = new CredentialsDB({ app, cache })
   const authToken = credDB.getToken(purposes.GITHUB_API)
-  const workDB = new WorkDB({ app, authToken, reporter })
+  const workDB = new WorkDB({ app, authToken, model, reporter })
 
   const updatedWorkData = await workDB.addProjects({ app, projects, reporter, workKey })
 
