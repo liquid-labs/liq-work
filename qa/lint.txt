@@ -1,0 +1,11 @@
+Test git rev: 44f277bdbe531d1af0113d18f7a0087e1aac5e7c
+
+/Users/zane/.liq/playground/liquid-labs/liq-work/src/handlers/work/start.mjs
+  54:44  error  Missing space after key 'availableFor'  key-spacing
+
+/Users/zane/.liq/playground/liquid-labs/liq-work/src/index.js
+  7:25  error  Newline required at end of file but not found  eol-last
+
+✖ 2 problems (2 errors, 0 warnings)
+  2 errors and 0 warnings potentially fixable with the `--fix` option.
+
