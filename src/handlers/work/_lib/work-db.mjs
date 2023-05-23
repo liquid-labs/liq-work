@@ -22,14 +22,16 @@ const WorkDB = class WorkDB {
   #authToken
   #data
   #dbFilePath
+  #model
   #playgroundPath
   #reporter
 
-  constructor({ app, authToken, reporter }) {
+  constructor({ app, authToken, model, reporter }) {
     this.#dbFilePath = app.liq.constants.WORK_DB_PATH
     this.#playgroundPath = app.liq.playground()
     this.#authToken = authToken // TODO: for security, do wo want to take this on a call by call basis to reduce the numbers of copies? Or do they all point to the same stirng? I think that may bet the case but I don't remember for sure.
     this.#data = readFJSON(this.#dbFilePath, { createOnNone : {} })
+    this.#model = model
     this.#reporter = reporter
   }
 
@@ -152,14 +154,16 @@ const WorkDB = class WorkDB {
       }
       const isPrivate = repoData.private
       const defaultBranch = repoData.default_branch
-      verifyIsOnBranch({ branch : defaultBranch, projectPath, reporter })
+      verifyIsOnBranch({ branches : [defaultBranch, workBranch], projectPath, reporter })
 
       if (isPrivate) { // TODO: allow option to use the private protocol with public repos where user has write perms
         await setupPrivateWork({ octocache, projectFQN : project, projectPath, reporter, workBranch })
       }
       else { // it's a public repo
+        const ghOrg = this.#model.orgs[org]?.getSetting('github.ORG_NAME')
         await setupPublicWork({
           authToken : this.#authToken,
+          ghOrg,
           octocache,
           org,
           projectBaseName,
@@ -237,9 +241,18 @@ const setupPrivateWork = async({ octocache, projectFQN, projectPath, reporter, w
   await checkoutWorkBranch({ octocache, projectFQN, projectPath, reporter, workBranch })
 }
 
-const setupPublicWork = async({ authToken, octocache, org, projectBaseName, projectPath, reporter, workBranch }) => {
+const setupPublicWork = async({
+  authToken,
+  ghOrg,
+  octocache,
+  org,
+  projectBaseName,
+  projectPath,
+  reporter,
+  workBranch
+}) => {
   reporter.push(`Setting up <bold>public<rst> work branch <em>${workBranch}<rst>...`)
-  const ghUser = await determineGitHubLogin({ authToken }).login
+  const ghUser = (await determineGitHubLogin({ authToken })).login
   let workRepoData
   try {
     workRepoData = await octocache.request(`GET /repos/${ghUser}/${projectBaseName}`)
@@ -250,11 +263,10 @@ const setupPublicWork = async({ authToken, octocache, org, projectBaseName, proj
   }
 
   if (!workRepoData) { // then we need to create a fork
-    reporter.push(`Creating fork <em>${ghUser}/${projectBaseName}<rst> (-> <bold>${org}/${projectBaseName}<rst>)`)
+    reporter.push(`Creating fork <em>${ghUser}/${projectBaseName}<rst> (from <bold>${ghOrg}/${projectBaseName}<rst>)`)
     await octocache.request('POST /repos/{owner}/{repo}/forks', {
-      owner               : org,
+      owner               : ghOrg,
       repo                : projectBaseName,
-      organization        : ghUser,
       default_branch_only : true
     })
   }

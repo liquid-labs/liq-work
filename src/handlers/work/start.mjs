@@ -1,6 +1,6 @@
 import createError from 'http-errors'
 
-import { claimIssues, verifyIssuesAvailable } from '@liquid-labs/github-toolkit'
+import { claimIssues, determineGitHubLogin, verifyIssuesAvailable } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 import { determineImpliedProject } from '@liquid-labs/liq-projects-lib'
@@ -49,10 +49,12 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   const credDB = new CredentialsDB({ app, cache })
   const authToken = credDB.getToken(purposes.GITHUB_API)
 
-  await verifyIssuesAvailable({ authToken, issues, noAutoAssign, notClosed : true })
+  const githubLogin = (await determineGitHubLogin({ authToken })).login
+
+  await verifyIssuesAvailable({ authToken, availableFor: githubLogin, issues, noAutoAssign, reporter })
   await claimIssues({ assignee, authToken, comment, issues, reporter })
 
-  const workDB = new WorkDB({ app, authToken, reporter })
+  const workDB = new WorkDB({ app, authToken, model, reporter })
   const workData = await workDB.startWork({ app, issues, projects, reporter })
 
   reporter.push(`Started work '<em>${workData.description}<rst>'.`)
