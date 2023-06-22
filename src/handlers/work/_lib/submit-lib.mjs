@@ -91,7 +91,9 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
       const [orgKey] = projectFQN.split('/')
       const org = model.orgs[orgKey]
       const gitHubOrg = org.requireSetting('core.github.ORG_NAME')
-      const controlSetMap = org.innerState.controlsMap['work-submit-controls']
+      console.log('org:', org) // DEBUG
+      console.log('org.controls:', org.controlsMap) // DEBUG
+      const controlSetMap = org.controlsMap['work-submit-controls']
 
       if (controlSetMap === undefined) { return {} }
       else {
