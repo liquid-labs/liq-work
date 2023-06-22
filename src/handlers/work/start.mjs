@@ -40,7 +40,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   }
   // Now, make sure all project specs are valid.
   for (const project of projects) {
-    if (model.playground.projects.get(project) == undefined) { 
+    if (model.playground.projects.get(project) === undefined) {
       throw createError.BadRequest(`No such local project '${project}'. Do you need to import it?`)
     }
   }
