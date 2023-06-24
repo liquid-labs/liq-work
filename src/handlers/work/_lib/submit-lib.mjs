@@ -90,7 +90,7 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
     const interogationBundles = await Promise.all(projects.map(async({ name: projectFQN }) => {
       const [orgKey] = projectFQN.split('/')
       const org = model.orgs[orgKey]
-      const gitHubOrg = org.requireSetting('core.github.ORG_NAME')
+      const gitHubOrg = org.requireSetting('github.ORG_NAME')
       console.log('org:', org) // DEBUG
       console.log('org.controls:', org.controlsMap) // DEBUG
       const controlSetMap = org.controlsMap['work-submit-controls']
@@ -146,7 +146,7 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
   for (const { name: projectFQN, private: isPrivate } of projects) {
     const [orgKey, project] = projectFQN.split('/')
     const org = model.orgs[orgKey]
-    const gitHubOrg = org.requireSetting('core.github.ORG_NAME')
+    const gitHubOrg = org.requireSetting('github.ORG_NAME')
     const projectPath = fsPath.join(app.liq.playground(), orgKey, project)
 
     const qaFiles = await saveQAFiles({ projectPath, reporter })
