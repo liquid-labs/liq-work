@@ -23,8 +23,8 @@
   "dependencies": {
     "@liquid-labs/condition-eval": "^1.0.0-alpha.17",
     "@liquid-labs/federated-json": "^1.0.0-alpha.33",
-    "@liquid-labs/git-toolkit": "^1.0.0-alpha.12",
-    "@liquid-labs/github-toolkit": "^1.0.0-alpha.8",
+    "@liquid-labs/git-toolkit": "^1.0.0-alpha.14",
+    "@liquid-labs/github-toolkit": "^1.0.0-alpha.11",
     "@liquid-labs/http-smart-response": "^1.0.0-alpha.3",
     "@liquid-labs/liq-credentials-db": "^1.0.0-alpha.3",
     "@liquid-labs/liq-handlers-lib": "^1.0.0-alpha.13",
