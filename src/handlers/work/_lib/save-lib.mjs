@@ -11,6 +11,7 @@ import {
 } from '@liquid-labs/git-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { determineImpliedProject } from '@liquid-labs/liq-projects-lib'
+import { LIQ_PLAYGROUND } from '@liquid-labs/liq-defaults'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { getCommonImpliedParameters } from './common-implied-parameters'
@@ -96,7 +97,7 @@ const getSaveEndpointParams = ({ descIntro }) => {
           const fileOptions = async({ relPath, partial, projectFQN, terminal }) => {
             console.log('relPath:', relPath, 'partial:', partial)
 
-            const pathBits = [app.liq.playground(), ...projectFQN.split('/')]
+            const pathBits = [LIQ_PLAYGROUND(), ...projectFQN.split('/')]
             if (relPath !== undefined) {
               pathBits.push(relPath)
             }
@@ -182,12 +183,12 @@ const saveFiles = ({ app, backupOnly, description, files, noBackup, reporter, re
         ([impOrg, impProj] = determineImpliedProject({ currDir }).split('/'))
       }
 
-      return [impOrg, impProj, f, fsPath.join(app.liq.playground(), impOrg, impProj)]
+      return [impOrg, impProj, f, fsPath.join(LIQ_PLAYGROUND(), impOrg, impProj)]
     }
     else {
       const [projectFQN, relFile] = f.split(':')
       const [org, proj] = projectFQN.split('/')
-      return [org, proj, relFile, fsPath.join(app.liq.playground(), org, proj)]
+      return [org, proj, relFile, fsPath.join(LIQ_PLAYGROUND(), org, proj)]
     }
   })
   // 'files' now a list of [ org, proj, relFile ]
@@ -243,7 +244,7 @@ const saveProjects = async({
 
   for (const projectFQN of projects) {
     const [org, project] = projectFQN.split('/')
-    const projectPath = fsPath.join(app.liq.playground(), org, project)
+    const projectPath = fsPath.join(LIQ_PLAYGROUND(), org, project)
     const currBranch = determineCurrentBranch({ projectPath, reporter })
     reporter.push(`Processing <code>${projectFQN}<rst>...`)
     if (currBranch !== workKey) {

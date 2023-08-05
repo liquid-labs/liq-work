@@ -1,11 +1,13 @@
 import * as fsPath from 'node:path'
 
+import { LIQ_HOME } from '@liquid-labs/liq-defaults'
+
 import { WorkDB } from './handlers/work/_lib/work-db'
 
 const setup = ({ app, model, reporter }) => {
-  app.liq.constants.WORK_DB_PATH = fsPath.join(app.liq.home(), 'work', 'work-db.yaml')
+  app.ext.constants.WORK_DB_PATH = fsPath.join(LIQ_HOME(), 'work', 'work-db.yaml')
 
-  app.liq.pathResolvers.workKey = {
+  app.ext.pathResolvers.workKey = {
     optionsFetcher : () => {
       const workDB = new WorkDB({ app })
       return workDB.getWorkKeys()

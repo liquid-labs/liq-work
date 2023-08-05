@@ -4,6 +4,7 @@ import createError from 'http-errors'
 
 import { determineCurrentBranch, determineOriginAndMain, verifyClean } from '@liquid-labs/git-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
+import { LIQ_PLAYGROUND } from '@liquid-labs/liq-defaults'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { WorkDB } from './work-db'
@@ -28,7 +29,7 @@ const doPause = async({ app, cache, reporter, req, res, workKey }) => {
   const projectsSkipped = []
   for (const { name: projectFQN } of workUnit.projects) {
     const [org, project] = projectFQN.split('/')
-    const projectPath = fsPath.join(app.liq.playground(), org, project)
+    const projectPath = fsPath.join(LIQ_PLAYGROUND(), org, project)
 
     const currBranch = await determineCurrentBranch({ projectPath, reporter })
 
