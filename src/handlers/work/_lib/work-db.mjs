@@ -13,6 +13,7 @@ import {
 } from '@liquid-labs/git-toolkit'
 import { determineGitHubLogin } from '@liquid-labs/github-toolkit'
 import { crossLinkDevProjects } from '@liquid-labs/liq-projects-lib'
+import { LIQ_PLAYGROUND } from '@liquid-labs/liq-defaults'
 import { Octocache } from '@liquid-labs/octocache'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
@@ -27,8 +28,8 @@ const WorkDB = class WorkDB {
   #reporter
 
   constructor({ app, authToken, model, reporter }) {
-    this.#dbFilePath = app.liq.constants.WORK_DB_PATH
-    this.#playgroundPath = app.liq.playground()
+    this.#dbFilePath = app.ext.constants.WORK_DB_PATH
+    this.#playgroundPath = LIQ_PLAYGROUND()
     this.#authToken = authToken // TODO: for security, do wo want to take this on a call by call basis to reduce the numbers of copies? Or do they all point to the same stirng? I think that may bet the case but I don't remember for sure.
     this.#data = readFJSON(this.#dbFilePath, { createOnNone : {} })
     this.#model = model
@@ -88,7 +89,7 @@ const WorkDB = class WorkDB {
       // that's all projects across all units of work
       const allProjects = Object.keys(Object.values(this.#data)
         .reduce((acc, wd) => { wd.projects.forEach(({ name }) => { acc[name] = true }); return acc }, {}))
-      crossLinkDevProjects({ playground : app.liq.playground(), projects : allProjects, reporter })
+      crossLinkDevProjects({ playground : LIQ_PLAYGROUND(), projects : allProjects, reporter })
     }
 
     return structuredClone(workData)

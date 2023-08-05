@@ -8,6 +8,7 @@ import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 import { determineCurrentMilestone } from '@liquid-labs/liq-projects-lib'
 import { cleanupQAFiles, getGitHubQAFileLinks, runQA, saveQAFiles } from '@liquid-labs/liq-qa-lib'
+import { LIQ_PLAYGROUND } from '@liquid-labs/liq-defaults'
 import { Octocache } from '@liquid-labs/octocache'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
@@ -66,7 +67,7 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
   for (const { name: projectFQN, private: isPrivate } of projects) {
     reporter.push(`Checking status of <em>${projectFQN}<rst>...`)
     const [org, project] = projectFQN.split('/')
-    const projectPath = fsPath.join(app.liq.playground(), org, project)
+    const projectPath = fsPath.join(LIQ_PLAYGROUND(), org, project)
 
     const remote = setRemote({ isPrivate, projectPath })
 
@@ -97,7 +98,7 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
       else {
         const title = `Project ${projectFQN} submission`
         const [, project] = projectFQN.split('/')
-        const projectPath = fsPath.join(app.liq.playground(), orgKey, project)
+        const projectPath = fsPath.join(LIQ_PLAYGROUND(), orgKey, project)
 
         const qaFileLinkIndex = await getGitHubQAFileLinks({ gitHubOrg, projectPath, reporter })
 
@@ -145,7 +146,7 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
     const [orgKey, project] = projectFQN.split('/')
     const org = model.orgs[orgKey]
     const gitHubOrg = org.requireSetting('github.ORG_NAME')
-    const projectPath = fsPath.join(app.liq.playground(), orgKey, project)
+    const projectPath = fsPath.join(LIQ_PLAYGROUND(), orgKey, project)
 
     const qaFiles = await saveQAFiles({ projectPath, reporter })
     const qaFileLinkIndex = await getGitHubQAFileLinks({ gitHubOrg, projectPath, reporter, qaFiles })
