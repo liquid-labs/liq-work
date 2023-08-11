@@ -1,6 +1,5 @@
 import { determineCurrentBranch, determineOriginAndMain } from '@liquid-labs/git-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
-import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 import { Octocache } from '@liquid-labs/octocache'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
@@ -24,8 +23,8 @@ const doClean = async({ app, cache, reporter, req, res, workKey }) => {
   const deleteBranches = !noDeleteBranches
   const updateLocal = !noUpdateLocal
 
-  const credDB = new CredentialsDB({ app, cache })
-  const authToken = credDB.getToken(purposes.GITHUB_API)
+  const credDB = app.ext.credentialsDB
+  const authToken = credDB.getToken('GITHUB_API')
 
   const octocache = new Octocache({ authToken })
 

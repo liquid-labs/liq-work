@@ -9,6 +9,7 @@ import {
   determineIfUnstagedChanges,
   determineIfUncommittedChanges
 } from '@liquid-labs/git-toolkit'
+import { checkGitHubSSHAccess } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { determineImpliedProject } from '@liquid-labs/liq-projects-lib'
 import { LIQ_PLAYGROUND } from '@liquid-labs/liq-defaults'
@@ -37,6 +38,8 @@ const doSave = async({
   if (files !== undefined && projects !== undefined) {
     throw createError.BadRequest("Parameters 'projecs' and 'files' are incompatible; please use one or the other.")
   }
+
+  checkGitHubSSHAccess()
 
   if (files !== undefined) {
     saveFiles({ app, backupOnly, description, files, noBackup, reporter, req, summary })

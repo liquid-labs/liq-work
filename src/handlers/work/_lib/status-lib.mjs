@@ -1,5 +1,4 @@
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
-import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 import { Octocache } from '@liquid-labs/octocache'
 
 import { determineWorkStatus } from './determine-work-status'
@@ -8,8 +7,8 @@ import { WorkDB } from './work-db'
 const doStatus = async({ app, cache, reporter, req, res, workKey }) => {
   const { allPulls, noFetch, updateLocal } = req.vars
 
-  const credDB = new CredentialsDB({ app, cache })
-  const authToken = credDB.getToken(purposes.GITHUB_API)
+  const credDB = app.ext.credentialsDB
+  const authToken = credDB.getToken('GITHUB_API')
 
   const octocache = new Octocache({ authToken })
 

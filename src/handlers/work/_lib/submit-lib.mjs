@@ -5,7 +5,6 @@ import createError from 'http-errors'
 import { determineOriginAndMain, verifyBranchInSync, verifyClean } from '@liquid-labs/git-toolkit'
 import { determineGitHubLogin } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
-import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 import { determineCurrentMilestone } from '@liquid-labs/liq-projects-lib'
 import { cleanupQAFiles, getGitHubQAFileLinks, runQA, saveQAFiles } from '@liquid-labs/liq-qa-lib'
 import { LIQ_PLAYGROUND } from '@liquid-labs/liq-defaults'
@@ -26,8 +25,8 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
 
   const { answers, dirtyOK, noPush = false } = req.vars
 
-  const credDB = new CredentialsDB({ app, cache })
-  const authToken = credDB.getToken(purposes.GITHUB_API)
+  const credDB = app.ext.credentialsDB
+  const authToken = credDB.getToken('GITHUB_API')
 
   const workDB = new WorkDB({ app, reporter }) // doesn't need auth token
 

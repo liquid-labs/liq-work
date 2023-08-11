@@ -2,7 +2,6 @@ import createError from 'http-errors'
 
 import { releaseIssues } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
-import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 
 import { commonIssuesParameters } from '../../_lib/common-issues-parameters'
 import { WorkDB } from '../../_lib/work-db'
@@ -22,8 +21,8 @@ const doRemoveIssues = async({ app, cache, reporter, req, res, workKey }) => {
   const primaryProject = workData.projects[0].name
   issues = issues.map((i) => i.match(/^\d+$/) ? primaryProject + '/' + i : i)
 
-  const credDB = new CredentialsDB({ app, cache, reporter })
-  const authToken = credDB.getToken(purposes.GITHUB_API)
+  const credDB = app.ext.credentialsDB
+  const authToken = credDB.getToken('GITHUB_API')
 
   await releaseIssues({ authToken, comment, issues, noUnassign, noUnlabel, reporter })
 

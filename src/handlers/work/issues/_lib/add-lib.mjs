@@ -1,6 +1,5 @@
 import { claimIssues, verifyIssuesAvailable } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
-import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 import { Octocache } from '@liquid-labs/octocache'
 
 import { commonAssignParameters } from '../../_lib/common-assign-parameters'
@@ -11,8 +10,8 @@ const doAddIssues = async({ app, cache, reporter, req, res, workKey }) => {
 
   let { assignee, comment, issues, noAutoAssign } = req.vars
 
-  const credDB = new CredentialsDB({ app, cache, reporter })
-  const authToken = credDB.getToken(purposes.GITHUB_API)
+  const credDB = app.ext.credentialsDB
+  const authToken = credDB.getToken('GITHUB_API')
   const workDB = new WorkDB({ app, authToken, reporter })
 
   // normalize the issue spec; add default project to issues
@@ -52,8 +51,8 @@ const getIssuesAddEndpointParameters = ({ workDesc }) => {
 }
 
 const issueOptionsFunc = async({ app, cache, workKey }) => {
-  const credDB = new CredentialsDB({ app, cache })
-  const authToken = credDB.getToken(purposes.GITHUB_API)
+  const credDB = app.ext.credentialsDB
+  const authToken = credDB.getToken('GITHUB_API')
   const octocache = new Octocache({ authToken })
 
   const workDB = new WorkDB({ app })
