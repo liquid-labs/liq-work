@@ -2,7 +2,6 @@ import createError from 'http-errors'
 
 import { claimIssues, determineGitHubLogin, verifyIssuesAvailable } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
-import { CredentialsDB, purposes } from '@liquid-labs/liq-credentials-db'
 import { determineImpliedProject } from '@liquid-labs/liq-projects-lib'
 
 import { commonAssignParameters } from './_lib/common-assign-parameters'
@@ -48,8 +47,8 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
   // Normalize issues as '<org>/<project>/<issue number>'
   issues = issues.map((i) => i.match(/^\d+$/) ? projects[0] + '/' + i : i)
 
-  const credDB = new CredentialsDB({ app, cache })
-  const authToken = credDB.getToken(purposes.GITHUB_API)
+  const credDB = app.ext.credentialsDB
+  const authToken = credDB.getToken('GITHUB_API')
 
   const githubLogin = (await determineGitHubLogin({ authToken })).login
 
