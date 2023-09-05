@@ -3,16 +3,13 @@ import * as fsPath from 'node:path'
 import createError from 'http-errors'
 
 import { determineOriginAndMain, verifyBranchInSync, verifyClean } from '@liquid-labs/git-toolkit'
-import { determineGitHubLogin } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
-import { determineCurrentMilestone } from '@liquid-labs/liq-projects-lib'
-import { cleanupQAFiles, getGitHubQAFileLinks, runQA, saveQAFiles } from '@liquid-labs/liq-qa-lib'
+import { cleanupQAFiles, runQA, saveQAFiles } from '@liquid-labs/liq-qa-lib'
 import { LIQ_PLAYGROUND } from '@liquid-labs/liq-defaults'
-import { Octocache } from '@liquid-labs/octocache'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { answerSetToMd } from './answer-set-to-md'
-import { GH_BASE_URL, WORKSPACE } from './constants'
+import { WORKSPACE } from './constants'
 import { determineProjects } from './determine-projects'
 import { prepareQuestionsFromControls } from './prepare-questions-from-controls'
 import { WorkDB } from './work-db'
@@ -25,9 +22,6 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
 
   const { answers, dirtyOK, noPush = false } = req.vars
 
-  const credDB = app.ext.credentialsDB
-  const authToken = credDB.getToken('GITHUB_API')
-
   const workDB = new WorkDB({ app, reporter }) // doesn't need auth token
 
   let workUnit;
@@ -37,11 +31,6 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
   projects = projects.map((p) => workUnit.projects.find((wup) => wup.name === p))
 
   let { assignees, closes, closeTarget, noBrowse = false, noCloses = false } = req.vars
-
-  // determine assignee(s)
-  if (assignees === undefined) {
-    assignees = [(await determineGitHubLogin({ authToken })).login]
-  }
 
   // we can now check if we are closing issues and which issues to close
   // because we de-duped, the lists would have equiv length our working set named all
@@ -81,6 +70,7 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
 
     runQA({ projectPath, reporter })
   }
+
   // we are ready to generate QA files and submit work
 
   // next, we go through the submitter attestations; we handle this here so that if there's some other reason why the
@@ -90,7 +80,6 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
     const interogationBundles = await Promise.all(projects.map(async({ name: projectFQN }) => {
       const [orgKey] = projectFQN.split('/')
       const org = model.orgs[orgKey]
-      const gitHubOrg = org.requireSetting('github.ORG_NAME')
       const controlSetMap = org.controlsMap['work-submit-controls']
 
       if (controlSetMap === undefined) { return {} }
@@ -99,7 +88,12 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
         const [, project] = projectFQN.split('/')
         const projectPath = fsPath.join(LIQ_PLAYGROUND(), orgKey, project)
 
-        const qaFileLinkIndex = await getGitHubQAFileLinks({ gitHubOrg, projectPath, reporter })
+        const qaFileLinkIndex = await app.ext.integrations.callHook({
+          providerFor  : 'pull request',
+          providerArgs : { model, projectFQN },
+          hook         : 'getQALinkFileIndex',
+          hookArgs     : { org, projectPath, reporter }
+        })
 
         const questionBundle = prepareQuestionsFromControls({ title, key : projectFQN, controlSetMap })
 
@@ -139,82 +133,58 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
     }
   }
 
-  const prCalls = [] // collects PR create promises so we can kick off multiple in parallel
   const prURLs = []
   for (const { name: projectFQN, private: isPrivate } of projects) {
     const [orgKey, project] = projectFQN.split('/')
     const org = model.orgs[orgKey]
-    const gitHubOrg = org.requireSetting('github.ORG_NAME')
     const projectPath = fsPath.join(LIQ_PLAYGROUND(), orgKey, project)
 
     const qaFiles = await saveQAFiles({ projectPath, reporter })
-    const qaFileLinkIndex = await getGitHubQAFileLinks({ gitHubOrg, projectPath, reporter, qaFiles })
+    
+    const /* project */ answerSet = answerData.find((a) => a.key === projectFQN)
+    const prBody = await answerSetToMd({
+      answerSet,
+      app,
+      closes,
+      closeTarget,
+      model,
+      org,
+      projectFQN,
+      projectPath,
+      projects,
+      reporter,
+      workKey
+    })
+
     await cleanupQAFiles({ projectPath, reporter })
     // now we need to push the updates to the remote
     const remote = setRemote({ isPrivate, projectPath })
     tryExec(`cd '${projectPath}' && git push ${remote} ${workKey}`)
 
-    const octocache = new Octocache({ authToken })
-
-    let head
-    if (isPrivate === true) {
-      head = workKey
-    }
-    else {
-      const ghUser = await determineGitHubLogin({ authToken })
-      head = `${ghUser.login}:${workKey}`
-    }
-
-    const openPRs = await octocache.paginate(`GET /repos/${gitHubOrg}/${project}/pulls`, { head, state : 'open' })
-    if (openPRs.length > 0) { // really, should (and I think can) only be one, but this is the better question anyway
-      reporter.push(`Project <em>${projectFQN}<rst> branch <code>${workKey}<rst> PR <bold>extant and open<rst>; pushing updates...`)
-      let remote
-      if (isPrivate === true) { ([remote] = determineOriginAndMain({ projectPath, reporter })) }
-      else { remote = WORKSPACE }
-      tryExec(`cd '${projectPath}' && git push ${remote} ${workKey}`)
-
-      for (const prData of openPRs) {
-        prCalls.push(updatePR({
-          answerData,
-          authToken,
-          closeTarget,
-          closes,
-          gitHubOrg,
-          octocache,
-          org,
-          prData,
-          projectFQN,
-          projects,
-          reporter,
-          qaFileLinkIndex,
-          workKey
-        }))
-      }
-    }
-    else { // we create the PR
-      prCalls.push(createPR({
-        answerData,
+    prURLs.push(...await app.ext.integrations.callHook({
+      providerFor  : 'pull request',
+      providerArgs : { model, projectFQN },
+      hook         : 'createOrUpdatePullRequest',
+      hookArgs     : {
         app,
         assignees,
-        authToken,
         cache,
         closes,
         closeTarget,
-        gitHubOrg,
-        head,
-        octocache,
+        isPrivate,
         org,
+        project,
+        qaFiles,
+        prBody,
         projectFQN,
+        projectPath,
         projects,
         reporter,
-        qaFileLinkIndex,
         workKey,
         workUnit
-      }))
-    }
+      }
+    }))
   } // projects loop
-
-  prURLs.push(...(await Promise.all(prCalls)))
 
   if (noBrowse !== true) {
     for (const url of prURLs) {
@@ -314,160 +284,6 @@ The close target is:
   Object.freeze(endpointParams.parameters)
 
   return endpointParams
-}
-
-// helper functions
-/**
- * Creates a new PR and returns a promise resolving to the PR URL.
- */
-const createPR = async({ // TODO: this siganure is redonk; we really want an async so we kick these off in parallel
-  // and generate the URL while the specific project data is in scope; so this form an effective parralel closures
-  // But we really should cleanup this redonk list...
-  answerData,
-  app,
-  assignees,
-  authToken,
-  cache,
-  closes,
-  closeTarget,
-  gitHubOrg,
-  head,
-  octocache,
-  org,
-  projectFQN,
-  projects,
-  reporter,
-  qaFileLinkIndex,
-  workKey,
-  workUnit
-}) => {
-  reporter.push(`Creating PR for <em>${projectFQN}<rst> branch <code>${workKey}<rst>...`)
-  // build up the PR body
-
-  const /* project */ answerSet = answerData.find((a) => a.key === projectFQN)
-  const bodyPromise = answerSetToMd({
-    answerSet,
-    authToken,
-    closes,
-    closeTarget,
-    org,
-    projectFQN,
-    projects,
-    qaFileLinkIndex,
-    workKey
-  })
-
-  const [, project] = projectFQN.split('/')
-
-  const milestonePromise = determineCurrentMilestone({ app, cache, gitHubOrg, project })
-
-  const repoPromise = octocache.request(`GET /repos/${gitHubOrg}/${project}`)
-
-  const [body, milestone, repoData] = await Promise.all([bodyPromise, milestonePromise, repoPromise])
-
-  const base = repoData.default_branch
-
-  const prData = await octocache.request(
-    'POST /repos/{owner}/{repo}/pulls',
-    {
-      owner : gitHubOrg,
-      repo  : project,
-      title : workUnit.description,
-      body,
-      head,
-      base
-    })
-
-  try {
-    await octocache.request('PATCH /repos/{owner}/{repo}/issues/{issueNumber}',
-      {
-        owner       : gitHubOrg,
-        repo        : project,
-        issueNumber : prData.number,
-        assignees,
-        milestone
-      })
-
-    const collaboratorsData = await octocache.paginate('GET /repos/{owner}/{repo}/collaborators', {
-      owner      : gitHubOrg,
-      repo       : project,
-      permission : 'triage'
-    })
-
-    const collaborators = collaboratorsData?.map((cd) => cd.login)
-
-    const possibleReviewers = collaborators.filter((r) => !assignees.includes(r))
-
-    const reviewSource = (possibleReviewers.length > 0 ? possibleReviewers : assignees)
-      .filter((r) => r !== prData.user.login) // the PR author cann't review the PR
-    if (reviewSource.length > 0) {
-      const reviewers = [reviewSource[Math.floor(Math.random() * reviewSource.length)]]
-
-      await octocache.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers', {
-        owner       : gitHubOrg,
-        repo        : project,
-        pull_number : prData.number,
-        reviewers
-      })
-    }
-  }
-  catch (e) { // we want to continue in the face of errors; as long as the PR was created, we will continue
-    reporter.push(`<warn>There were problems completing the PR ${gitHubOrg}/${project}/${prData.number}.<rst> Assignees, milestone, and/or reviewers may not be set.`)
-  }
-
-  return `${GH_BASE_URL}/${gitHubOrg}/${project}/pull/${prData.number}`
-}
-
-/**
- * Updates the PR body and returns a promise resolving to the PR URL.
- */
-const updatePR = async({
-  answerData,
-  authToken,
-  closes,
-  closeTarget,
-  gitHubOrg,
-  octocache,
-  org,
-  prData,
-  projectFQN,
-  projects,
-  reporter,
-  qaFileLinkIndex,
-  workKey
-}) => {
-  reporter.push(`Updating PR <code>${prData.number}<rst> for <em>${projectFQN}<rst> branch <code>${workKey}<rst>...`)
-  // build up the PR body
-
-  const answerSet = answerData.find((a) => a.key === projectFQN)
-  const body = await answerSetToMd({
-    answerSet,
-    authToken,
-    closes,
-    closeTarget,
-    org,
-    projectFQN,
-    projects,
-    qaFileLinkIndex,
-    workKey
-  })
-
-  const [, project] = projectFQN.split('/')
-
-  try {
-    await octocache.request('PATCH /repos/{owner}/{repo}/issues/{issueNumber}',
-      {
-        owner       : gitHubOrg,
-        repo        : project,
-        issueNumber : prData.number,
-        body
-      })
-  }
-  catch (e) { // we want to continue in the face of errors; as long as the PR was created, we will continue
-    reporter.push(`<warn>There were problems updating the PR ${gitHubOrg}/${project}/${prData.number}.<rst> Try submitting again or update manually.`)
-  }
-
-  return `${GH_BASE_URL}/${gitHubOrg}/${project}/pull/${prData.number}`
 }
 
 export { doSubmit, getSubmitEndpointParams }
