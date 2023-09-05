@@ -38,18 +38,18 @@ const answerSetToMd = async({
   md += projectFQN === closeTarget ? 'to' : 'in support of issues'
   md += closes.length > 1 ? ': \n* ' : ' '
   md += (await Promise.all(closes.map(async(i) => {
-      const [o, p, n] = i.split('/')
-      const issueRef = `${o}/${p}` === projectFQN ? `#${n}` : `${o}/${p}#${n}`
-      return projectFQN === closeTarget
-        ? `resolve ${issueRef}`
-        : `[${issueRef}](${await app.ext.integrations.callHook({
-          providerFor  : 'tickets',
-          providerArgs : { model, projectFQN },
-          hook         : 'getIssueURL',
-          hookArgs     : { org, project : p, ref : n }
-        })})`
-    })))
-    .reduce((acc, s) => acc += acc.length === 0 ? s : `\n* ${s}`, '')
+    const [o, p, n] = i.split('/')
+    const issueRef = `${o}/${p}` === projectFQN ? `#${n}` : `${o}/${p}#${n}`
+    return projectFQN === closeTarget
+      ? `resolve ${issueRef}`
+      : `[${issueRef}](${await app.ext.integrations.callHook({
+        providerFor  : 'tickets',
+        providerArgs : { model, projectFQN },
+        hook         : 'getIssueURL',
+        hookArgs     : { org, project : p, ref : n }
+      })})`
+  })))
+    .reduce((acc, s) => { acc += acc.length === 0 ? s : `\n* ${s}`; return acc }, '')
   if (projects.length > 1) {
     const otherProjects = projects.filter((p) => p.name !== projectFQN)
     md += '\n\nRelated projects: '
@@ -69,7 +69,7 @@ const answerSetToMd = async({
       })
       return `[${otherProjFQN}](${projectURL}) ([PRs](${prURL}))`
     })))
-    .reduce((acc, s) => acc += acc.length === 0 ? s : `, ${s}`, '')
+      .reduce((acc, s) => { acc += acc.length === 0 ? s : `, ${s}`; return acc }, '')
   }
 
   md += `\n\nSubmitted by: ${integrationUser}

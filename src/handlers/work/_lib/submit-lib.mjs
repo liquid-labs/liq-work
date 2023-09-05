@@ -140,7 +140,7 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
     const projectPath = fsPath.join(LIQ_PLAYGROUND(), orgKey, project)
 
     const qaFiles = await saveQAFiles({ projectPath, reporter })
-    
+
     const /* project */ answerSet = answerData.find((a) => a.key === projectFQN)
     const prBody = await answerSetToMd({
       answerSet,
