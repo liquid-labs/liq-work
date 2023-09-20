@@ -4,6 +4,7 @@ const answerSetToMd = async({
   closes,
   closeTarget,
   model,
+  noQA,
   org,
   projectFQN,
   projectPath,
@@ -20,18 +21,21 @@ const answerSetToMd = async({
     hookArgs     : { app }
   })
 
-  const qaFileLinkIndex = await app.ext.integrations.callHook({
-    providerFor  : 'pull request',
-    providerArgs : { model, projectFQN },
-    hook         : 'getQALinkFileIndex',
-    hookArgs     : { org, projectPath, reporter }
-  })
+  let qaLinksMd
+  if (noQA !== true) {
+    const qaFileLinkIndex = await app.ext.integrations.callHook({
+      providerFor  : 'pull request',
+      providerArgs : { model, projectFQN },
+      hook         : 'getQALinkFileIndex',
+      hookArgs     : { org, projectPath, reporter }
+    })
 
-  const qaLinksMd = Object.keys(qaFileLinkIndex).reduce((acc, key) => {
-    const { fileType, url } = qaFileLinkIndex[key]
-    acc.push(`- [${fileType} record](${url})`)
-    return acc
-  }, []).join('\n')
+    qaLinksMd = Object.keys(qaFileLinkIndex).reduce((acc, key) => {
+      const { fileType, url } = qaFileLinkIndex[key]
+      acc.push(`- [${fileType} record](${url})`)
+      return acc
+    }, []).join('\n')
+  }
 
   let md = 'Pull request '
 
@@ -80,7 +84,15 @@ Review all code changes. Verify the submitter attestations belowe, checking off 
 
 ## QA files
 
-${qaLinksMd}
+`
+  if (qaLinksMd === undefined) {
+    md += '___QA NOT PERFORMED___'
+  }
+  else {
+    md += qaLinksMd
+  }
+
+  md += `
 
 ## Submitter attestations
 

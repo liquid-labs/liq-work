@@ -20,7 +20,7 @@ import { WorkDB } from './work-db'
 const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, workKey }) => {
   reporter = reporter.isolate()
 
-  const { answers, dirtyOK, noPush = false } = req.vars
+  const { answers, dirtyOK, noPush = false, noQA = false } = req.vars
 
   const workDB = new WorkDB({ app, reporter }) // doesn't need auth token
 
@@ -68,7 +68,9 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
     }
     verifyBranchInSync({ branch : workKey, description : 'work', projectPath, remote, reporter })
 
-    runQA({ projectPath, reporter })
+    if (noQA !== true) {
+      runQA({ projectPath, reporter })
+    }
   }
 
   // we are ready to generate QA files and submit work
@@ -88,13 +90,6 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
         const [, project] = projectFQN.split('/')
         const projectPath = fsPath.join(LIQ_PLAYGROUND(), orgKey, project)
 
-        const qaFileLinkIndex = await app.ext.integrations.callHook({
-          providerFor  : 'pull request',
-          providerArgs : { model, projectFQN },
-          hook         : 'getQALinkFileIndex',
-          hookArgs     : { org, projectPath, reporter }
-        })
-
         const questionBundle = prepareQuestionsFromControls({ title, key : projectFQN, controlSetMap })
 
         const { env, varsReferenced } = questionBundle
@@ -106,10 +101,24 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
           }
         }
 
-        for (const qaFile of Object.keys(qaFileLinkIndex)) {
-          const { fileType, url } = qaFileLinkIndex[qaFile]
-          const urlParam = 'CHANGES_' + fileType.replaceAll(/ /g, '_').toUpperCase() + '_REPORT_URL'
-          env[urlParam] = url
+        if (noQA === true) {
+          // 'NONE' is a reserved word that evaluations to 0
+          env.CHANGES_UNIT_TEST_REPORT_URL = 'TEST SKIPPED'
+          env.CHANGES_LINT_REPORT_URL = 'LINT SKIPPED'
+        }
+        else {
+          const qaFileLinkIndex = await app.ext.integrations.callHook({
+            providerFor  : 'pull request',
+            providerArgs : { model, projectFQN },
+            hook         : 'getQALinkFileIndex',
+            hookArgs     : { org, projectPath, reporter }
+          })
+
+          for (const qaFile of Object.keys(qaFileLinkIndex)) {
+            const { fileType, url } = qaFileLinkIndex[qaFile]
+            const urlParam = 'CHANGES_' + fileType.replaceAll(/ /g, '_').toUpperCase() + '_REPORT_URL'
+            env[urlParam] = url
+          }
         }
 
         return questionBundle
@@ -148,6 +157,7 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
       closes,
       closeTarget,
       model,
+      noQA,
       org,
       projectFQN,
       projectPath,
@@ -156,7 +166,9 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
       workKey
     })
 
-    await cleanupQAFiles({ projectPath, reporter })
+    if (noQA !== true) {
+      await cleanupQAFiles({ projectPath, reporter })
+    }
     // now we need to push the updates to the remote
     const remote = setRemote({ isPrivate, projectPath })
     tryExec(`cd '${projectPath}' && git push ${remote} ${workKey}`)
@@ -261,6 +273,11 @@ The close target is:
         name        : 'noPush',
         isBoolean   : true,
         description : 'Supresses the default behavior of pushing local changes to the working remote. If the local and remote branch are not in sync and `noPush` is true, then an error will be thrown.'
+      },
+      {
+        name        : 'noQA',
+        isBoolean   : true,
+        description : 'supresses the default QA tests.'
       },
       {
         name         : 'projects',
