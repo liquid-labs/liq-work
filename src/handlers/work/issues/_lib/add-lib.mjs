@@ -20,7 +20,7 @@ const doAddIssues = async({ app, cache, reporter, req, res, workKey }) => {
   const primaryProject = workData.projects[0].name
   const { pkgJSON } = app.ext._liqProjects.playgroundMonitor.getProjectData(primaryProject)
 
-  const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON: pkgJSON })
+  const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON : pkgJSON })
   issues = issues.map((i) => i.match(/^\d+$/) ? ghOrg + '/' + projectBasename + '/' + i : i)
 
   await verifyIssuesAvailable({ authToken, issues, noAutoAssign, notClosed : true, reporter })

@@ -99,7 +99,7 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
           }
           catch (e) {
             if (e.code !== 'ENOENT') {
-              throw(e)
+              throw (e)
             }
           }
         }
