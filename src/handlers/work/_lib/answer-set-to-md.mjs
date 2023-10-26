@@ -1,11 +1,13 @@
+import { getGitHubOrgAndProjectBasename } from '@liquid-labs/github-toolkit'
+
 const answerSetToMd = async({
   app,
   answerSet,
   closes,
   closeTarget,
-  model,
+  gitHubOrg,
   noQA,
-  org,
+  pkgJSON,
   projectFQN,
   projectPath,
   projects,
@@ -16,7 +18,7 @@ const answerSetToMd = async({
 
   const integrationUser = await app.ext.integrations.callHook({
     providerFor  : 'pull request',
-    providerArgs : { model, projectFQN },
+    providerArgs : { pkgJSON },
     hook         : 'getCurrentIntegrationUser',
     hookArgs     : { app }
   })
@@ -25,9 +27,9 @@ const answerSetToMd = async({
   if (noQA !== true) {
     const qaFileLinkIndex = await app.ext.integrations.callHook({
       providerFor  : 'pull request',
-      providerArgs : { model, projectFQN },
+      providerArgs : { pkgJSON },
       hook         : 'getQALinkFileIndex',
-      hookArgs     : { org, projectPath, reporter }
+      hookArgs     : { gitHubOrg, pkgJSON, projectPath, reporter }
     })
 
     qaLinksMd = Object.keys(qaFileLinkIndex).reduce((acc, key) => {
@@ -48,9 +50,9 @@ const answerSetToMd = async({
       ? `resolve ${issueRef}`
       : `[${issueRef}](${await app.ext.integrations.callHook({
         providerFor  : 'tickets',
-        providerArgs : { model, projectFQN },
+        providerArgs : { pkgJSON },
         hook         : 'getIssueURL',
-        hookArgs     : { org, project : p, ref : n }
+        hookArgs     : { gitHubOrg, project : p, ref : n }
       })})`
   })))
     .reduce((acc, s) => { acc += acc.length === 0 ? s : `\n* ${s}`; return acc }, '')
@@ -58,18 +60,21 @@ const answerSetToMd = async({
     const otherProjects = projects.filter((p) => p.name !== projectFQN)
     md += '\n\nRelated projects: '
     md += (await Promise.all(otherProjects.map(async({ name: otherProjFQN }) => {
+      const { pkgJSON: otherPkgJSON } = app.ext._liqProjects.playgroundMonitor.getProjectData(otherProjFQN)
+      const { org: otherGitHubOrg } = getGitHubOrgAndProjectBasename({ pkgJSON : otherPkgJSON })
+
       const [, otherProject] = otherProjFQN.split('/')
       const projectURL = await app.ext.integrations.callHook({
         providerFor  : 'tickets',
-        providerArgs : { model, org, project : otherProject },
+        providerArgs : { pkgJSON : otherPkgJSON },
         hook         : 'getProjectURL',
-        hookArgs     : { org, project : otherProject }
+        hookArgs     : { gitHubOrg : otherGitHubOrg, project : otherProject }
       })
       const prURL = await app.ext.integrations.callHook({
         providerFor  : 'pull requests',
-        providerArgs : { model, projectFQN },
+        providerArgs : { pkgJSON : otherPkgJSON },
         hook         : 'getPullRequestURLsByHead',
-        hookArgs     : { org, project : otherProject, head : workKey }
+        hookArgs     : { gitHubOrg : otherGitHubOrg, project : otherProject, head : workKey }
       })
       return `[${otherProjFQN}](${projectURL}) ([PRs](${prURL}))`
     })))
@@ -98,7 +103,8 @@ Review all code changes. Verify the submitter attestations belowe, checking off 
 
 ***To be verified by reviewer.***\n\n`
 
-  const verifyEach = org.getSetting('controls.work.submit.REVIEW_EACH_ATTESTATION') || false
+  // TODO: read this from somewhere...
+  const verifyEach = /* org.getSetting('controls.work.submit.REVIEW_EACH_ATTESTATION') || */ false
   for (const { disposition, parameter, prompt, rawAnswer, value } of results) {
     if (prompt !== undefined && disposition === 'answered') { // we only need to print out the answered questions
       md += `- ${verifyEach === true ? '[ ] ' : ''}${prompt.replaceAll(/<(?:em|h1|h2|code|rst)>/g, '')} ${rawAnswer} (_${parameter}=${value}_)\n`

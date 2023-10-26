@@ -4,7 +4,7 @@ const { help, method, parameters } = getSaveEndpointParams({ descIntro : 'Saves 
 
 const path = ['work', ':workKey', 'save']
 
-const func = ({ app, cache, model, reporter }) => async(req, res) => {
+const func = ({ app, cache, reporter }) => async(req, res) => {
   const { workKey } = req.vars
 
   await doSave({ all : false, app, cache, workKey, reporter, req, res })

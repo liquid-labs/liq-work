@@ -4,7 +4,7 @@ import { LIQ_HOME } from '@liquid-labs/liq-defaults'
 
 import { WorkDB } from './handlers/work/_lib/work-db'
 
-const setup = ({ app, model, reporter }) => {
+const setup = ({ app, reporter }) => {
   app.ext.constants.WORK_DB_PATH = fsPath.join(LIQ_HOME(), 'work', 'work-db.yaml')
 
   app.ext.pathResolvers.workKey = {

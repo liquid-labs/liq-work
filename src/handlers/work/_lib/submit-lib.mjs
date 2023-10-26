@@ -1,11 +1,13 @@
 import * as fsPath from 'node:path'
+import * as fs from 'node:fs/promises'
 
 import createError from 'http-errors'
+import yaml from 'js-yaml'
 
 import { determineOriginAndMain, verifyBranchInSync, verifyClean } from '@liquid-labs/git-toolkit'
+import { getGitHubOrgAndProjectBasename } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { cleanupQAFiles, runQA, saveQAFiles } from '@liquid-labs/liq-qa-lib'
-import { LIQ_PLAYGROUND } from '@liquid-labs/liq-defaults'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { answerSetToMd } from './answer-set-to-md'
@@ -17,9 +19,8 @@ import { WorkDB } from './work-db'
 /**
  * Analyzes current state and if branch is clean and up-to-date, creates a PR or updates the existing PR. Will gather * answers for `work-submit-controls` if not included in the request.
  */
-const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, workKey }) => {
+const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey }) => {
   reporter = reporter.isolate()
-
   const { answers, dirtyOK, noPush = false, noQA = false } = req.vars
 
   const workDB = new WorkDB({ app, reporter }) // doesn't need auth token
@@ -31,7 +32,6 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
   projects = projects.map((p) => workUnit.projects.find((wup) => wup.name === p))
 
   let { assignees, closes, closeTarget, noBrowse = false, noCloses = false } = req.vars
-
   // we can now check if we are closing issues and which issues to close
   // because we de-duped, the lists would have equiv length our working set named all
   if (projects.length !== workUnit.projects.length && noCloses !== false && closes === undefined) {
@@ -41,7 +41,6 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
     closes = closes || workUnit.issues.map((i) => i.id)
     closeTarget = closeTarget || projects[0].name
   }
-
   // inputs have ben normalized we are now ready to start verifying the repo state
   const setRemote = ({ isPrivate, projectPath }) => {
     let remote
@@ -50,12 +49,10 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
 
     return remote
   }
-
   // first, we check readiness
   for (const { name: projectFQN, private: isPrivate } of projects) {
     reporter.push(`Checking status of <em>${projectFQN}<rst>...`)
-    const [org, project] = projectFQN.split('/')
-    const projectPath = fsPath.join(LIQ_PLAYGROUND(), org, project)
+    const { projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
 
     const remote = setRemote({ isPrivate, projectPath })
 
@@ -67,7 +64,6 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
       tryExec(`cd '${projectPath}' && git push ${remote} ${workKey}`)
     }
     verifyBranchInSync({ branch : workKey, description : 'work', projectPath, remote, reporter })
-
     if (noQA !== true) {
       runQA({ projectPath, reporter })
     }
@@ -80,26 +76,51 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
   if (answers === undefined) {
     // we iterate over the projects
     const interogationBundles = await Promise.all(projects.map(async({ name: projectFQN }) => {
-      const [orgKey] = projectFQN.split('/')
-      const org = model.orgs[orgKey]
-      const controlSetMap = org.controlsMap['work-submit-controls']
+      const { pkgJSON, projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
 
-      if (controlSetMap === undefined) { return {} }
+      const pkgSubmitControlsPath = fsPath.join(projectPath, 'controls', 'work-submit.qcontrols.yaml')
+      let controlsContent
+      // load controlsContent
+      try {
+        controlsContent = await fs.readFile(pkgSubmitControlsPath, { encoding : 'utf8' })
+      }
+      catch (e) {
+        if (e.code !== 'ENOENT') {
+          throw e
+        } // else, no problem, just doesn't define the control at the package level
+        const [orgKey] = projectFQN.split('/')
+        const org = app.ext._liqOrgs.orgs[orgKey]
+        if (org !== undefined) {
+          const { projectPath: orgProjectPath } = org
+          const orgSubmitControlsPath =
+            fsPath.join(orgProjectPath, 'data', 'org', 'controls', 'work-submit.qcontrols.yaml')
+          try {
+            controlsContent = await fs.readFile(orgSubmitControlsPath)
+          }
+          catch (e) {
+            if (e.code !== 'ENOENT') {
+              throw (e)
+            }
+          }
+        }
+      } // controlsContent load section
+      if (controlsContent === undefined) {
+        return {}
+      }
       else {
         const title = `Project ${projectFQN} submission`
-        const [, project] = projectFQN.split('/')
-        const projectPath = fsPath.join(LIQ_PLAYGROUND(), orgKey, project)
+        const controlsSpec = yaml.load(controlsContent)
 
-        const questionBundle = prepareQuestionsFromControls({ title, key : projectFQN, controlSetMap })
+        const questionBundle = prepareQuestionsFromControls({ title, key : projectFQN, controlsSpec })
+        const { env /* varsReferenced */ } = questionBundle
 
-        const { env, varsReferenced } = questionBundle
-
+        /* This was a feature without a use case, I think. But I can see it being useful.
         for (const v of varsReferenced) {
-          const value = /* org.projects.get(XXX).getSetting() || */ org.getSetting(`controls.work.submit.${v}`)
+          const value = org.getSetting(`controls.work.submit.${v}`)
           if (value !== undefined) {
             env[v] = value
           }
-        }
+        } */
 
         if (noQA === true) {
           // 'NONE' is a reserved word that evaluations to 0
@@ -109,9 +130,9 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
         else {
           const qaFileLinkIndex = await app.ext.integrations.callHook({
             providerFor  : 'pull request',
-            providerArgs : { model, projectFQN },
+            providerArgs : { pkgJSON },
             hook         : 'getQALinkFileIndex',
-            hookArgs     : { org, projectPath, reporter }
+            hookArgs     : { app, pkgJSON, projectPath, reporter }
           })
 
           for (const qaFile of Object.keys(qaFileLinkIndex)) {
@@ -144,9 +165,8 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
 
   const prURLs = []
   for (const { name: projectFQN, private: isPrivate } of projects) {
-    const [orgKey, project] = projectFQN.split('/')
-    const org = model.orgs[orgKey]
-    const projectPath = fsPath.join(LIQ_PLAYGROUND(), orgKey, project)
+    const { pkgJSON, projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
+    const { org: gitHubOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON : pkgJSON })
 
     const qaFiles = await saveQAFiles({ projectPath, reporter })
 
@@ -156,9 +176,9 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
       app,
       closes,
       closeTarget,
-      model,
+      gitHubOrg,
       noQA,
-      org,
+      pkgJSON,
       projectFQN,
       projectPath,
       projects,
@@ -175,7 +195,7 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
 
     prURLs.push(...await app.ext.integrations.callHook({
       providerFor  : 'pull request',
-      providerArgs : { model, projectFQN },
+      providerArgs : { pkgJSON },
       hook         : 'createOrUpdatePullRequest',
       hookArgs     : {
         app,
@@ -184,13 +204,11 @@ const doSubmit = async({ all, app, cache, model, projects, reporter, req, res, w
         closes,
         closeTarget,
         isPrivate,
-        org,
-        project,
+        projectBasename,
         qaFiles,
         prBody,
         projectFQN,
         projectPath,
-        projects,
         reporter,
         workKey,
         workUnit

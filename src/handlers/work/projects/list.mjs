@@ -4,7 +4,7 @@ const { help, method, parameters } = getListProjectsEndpointParameters({ workDes
 
 const path = ['work', ':workKey', 'projects', 'list']
 
-const func = ({ app, cache, model, reporter }) => async(req, res) => {
+const func = ({ app, cache, reporter }) => async(req, res) => {
   const { workKey } = req.vars
 
   await doListProjects({ app, cache, reporter, req, res, workKey })

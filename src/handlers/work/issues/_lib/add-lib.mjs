@@ -1,4 +1,4 @@
-import { claimIssues, verifyIssuesAvailable } from '@liquid-labs/github-toolkit'
+import { claimIssues, getGitHubOrgAndProjectBasename, verifyIssuesAvailable } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { Octocache } from '@liquid-labs/octocache'
 
@@ -11,14 +11,17 @@ const doAddIssues = async({ app, cache, reporter, req, res, workKey }) => {
   let { assignee, comment, issues, noAutoAssign } = req.vars
 
   const credDB = app.ext.credentialsDB
-  const authToken = credDB.getToken('GITHUB_API')
+  const authToken = await credDB.getToken('GITHUB_API')
   const workDB = new WorkDB({ app, authToken, reporter })
 
   // normalize the issue spec; add default project to issues
   const workData = workDB.requireData(workKey)
   // normalize the issue references
   const primaryProject = workData.projects[0].name
-  issues = issues.map((i) => i.match(/^\d+$/) ? primaryProject + '/' + i : i)
+  const { pkgJSON } = app.ext._liqProjects.playgroundMonitor.getProjectData(primaryProject)
+
+  const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON : pkgJSON })
+  issues = issues.map((i) => i.match(/^\d+$/) ? ghOrg + '/' + projectBasename + '/' + i : i)
 
   await verifyIssuesAvailable({ authToken, issues, noAutoAssign, notClosed : true, reporter })
   await claimIssues({ assignee, authToken, comment, issues, reporter })
@@ -52,7 +55,7 @@ const getIssuesAddEndpointParameters = ({ workDesc }) => {
 
 const issueOptionsFunc = async({ app, cache, workKey }) => {
   const credDB = app.ext.credentialsDB
-  const authToken = credDB.getToken('GITHUB_API')
+  const authToken = await credDB.getToken('GITHUB_API')
   const octocache = new Octocache({ authToken })
 
   const workDB = new WorkDB({ app })

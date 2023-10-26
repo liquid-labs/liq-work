@@ -5,7 +5,7 @@ const { help, method, parameters } = getIssuesRemoveEndpointParameters({ workDes
 
 const path = ['work', 'issues', 'remove']
 
-const func = ({ app, cache, model, reporter }) => async(req, res) => {
+const func = ({ app, cache, reporter }) => async(req, res) => {
   const workKey = await requireImpliedBranch({ reporter, req })
 
   await doRemoveIssues({ app, cache, reporter, req, res, workKey })

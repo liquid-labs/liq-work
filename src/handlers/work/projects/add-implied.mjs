@@ -5,7 +5,7 @@ const { help, method, parameters } = getAddProjectsEndpointParameters({ workDesc
 
 const path = ['work', 'projects', 'add']
 
-const func = ({ app, cache, model, reporter }) => async(req, res) => {
+const func = ({ app, cache, reporter }) => async(req, res) => {
   const workKey = await requireImpliedBranch({ reporter, req })
 
   await doAddProjects({ app, cache, reporter, req, res, workKey })

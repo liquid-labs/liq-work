@@ -4,7 +4,7 @@ const { help, method, parameters } = getCleanEndpointParameters({ workDesc : 'na
 
 const path = ['work', ':workKey', 'clean']
 
-const func = ({ app, cache, model, reporter }) => async(req, res) => {
+const func = ({ app, cache, reporter }) => async(req, res) => {
   reporter = reporter.isolate()
 
   const { workKey } = req.vars

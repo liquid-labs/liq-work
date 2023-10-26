@@ -4,7 +4,7 @@ const { help, method, parameters } = getAddProjectsEndpointParameters({ workDesc
 
 const path = ['work', ':workKey', 'projects', 'add']
 
-const func = ({ app, cache, model, reporter }) => async(req, res) => {
+const func = ({ app, cache, reporter }) => async(req, res) => {
   const { workKey } = req.vars
 
   await doAddProjects({ app, cache, reporter, req, res, workKey })

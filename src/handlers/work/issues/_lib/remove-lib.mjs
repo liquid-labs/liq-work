@@ -22,7 +22,7 @@ const doRemoveIssues = async({ app, cache, reporter, req, res, workKey }) => {
   issues = issues.map((i) => i.match(/^\d+$/) ? primaryProject + '/' + i : i)
 
   const credDB = app.ext.credentialsDB
-  const authToken = credDB.getToken('GITHUB_API')
+  const authToken = await credDB.getToken('GITHUB_API')
 
   await releaseIssues({ authToken, comment, issues, noUnassign, noUnlabel, reporter })
 

@@ -13,7 +13,7 @@ parameters = [
 
 const path = ['work', 'qa']
 
-const func = ({ app, cache, model, reporter }) => async(req, res) => {
+const func = ({ app, cache, reporter }) => async(req, res) => {
   reporter = reporter.isolate()
 
   const cwd = req.get('X-CWD')
@@ -21,7 +21,7 @@ const func = ({ app, cache, model, reporter }) => async(req, res) => {
 
   const workKey = determineCurrentBranch({ projectPath : cwd, reporter })
 
-  await doQA({ app, cache, model, reporter, req, res, workKey })
+  await doQA({ app, cache, reporter, req, res, workKey })
 }
 
 export { func, help, parameters, path, method }

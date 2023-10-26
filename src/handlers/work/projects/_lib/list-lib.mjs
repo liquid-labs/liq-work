@@ -12,7 +12,7 @@ const terminalFormatter = (issues) => issues.map((i) => `<em>${i.name}<rst>:\n  
 
 const textFormatter = (issues) => issues.map((i) => `${i.name}:\n  - private: ${i.private}`).join('\n')
 
-const doListProjects = async({ app, cache, model, reporter, req, res, workKey }) => {
+const doListProjects = async({ app, cache, reporter, req, res, workKey }) => {
   reporter = reporter.isolate()
 
   const { browseEach = false } = req.vars

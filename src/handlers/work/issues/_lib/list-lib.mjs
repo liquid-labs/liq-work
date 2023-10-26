@@ -16,7 +16,7 @@ const getIssuesListEndpointParameters = ({ workDesc }) => {
 
   return {
     help : {
-      name        : 'Work projects list',
+      name        : 'Work issues list',
       summary     : `List the ${workDesc} work issues.`,
       description : `Lists the issues associated with the ${workDesc} unit of work.`
     },
@@ -25,14 +25,14 @@ const getIssuesListEndpointParameters = ({ workDesc }) => {
   }
 }
 
-const allFields = ['name', 'private']
+const allFields = ['id', 'summary']
 const defaultFields = allFields
 
-const mdFormatter = (issues, title) => `# ${title}\n\n${issues.map((i) => `- __${i.name}__:\n  - private: ${i.private}`).join('\n')}\n`
+const mdFormatter = (issues, title) => `# ${title}\n\n${issues.map((i) => `- __${i.id}__: ${i.summary}`).join('\n')}\n`
 
-const terminalFormatter = (issues) => issues.map((i) => `<em>${i.name}<rst>:\n  - private: <code>${i.private}<rst>`).join('\n')
+const terminalFormatter = (issues) => issues.map((i) => `<code>${i.id}<rst>: ${i.summary}`).join('\n')
 
-const textFormatter = (issues) => issues.map((i) => `${i.name}:\n  - private: ${i.private}`).join('\n')
+const textFormatter = (issues) => issues.map((i) => `${i.id}: ${i.summary}`).join('\n')
 
 const doListIssues = async({ app, cache, reporter, req, res, workKey }) => {
   reporter = reporter.isolate()
@@ -41,6 +41,7 @@ const doListIssues = async({ app, cache, reporter, req, res, workKey }) => {
 
   const workDB = new WorkDB({ app })
   const workData = await workDB.getData(workKey)
+  console.log('workData:', workData) // DEBUg
 
   if (browseEach === true) {
     for (const { id } of workData.issues) {
@@ -51,7 +52,7 @@ const doListIssues = async({ app, cache, reporter, req, res, workKey }) => {
   }
 
   formatOutput({
-    basicTitle : `${workKey} Projects`,
+    basicTitle : `${workKey} issues`,
     data       : workData.issues,
     allFields,
     defaultFields,

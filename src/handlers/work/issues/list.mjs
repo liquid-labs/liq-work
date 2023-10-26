@@ -4,7 +4,7 @@ const { help, method, parameters } = getIssuesListEndpointParameters({ workDesc 
 
 const path = ['work', ':workKey', 'issues', 'list']
 
-const func = ({ app, cache, model, reporter }) => async(req, res) => {
+const func = ({ app, cache, reporter }) => async(req, res) => {
   const { workKey } = req.vars
 
   await doListIssues({ app, cache, reporter, req, res, workKey })

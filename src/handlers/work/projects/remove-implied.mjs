@@ -5,7 +5,7 @@ const { help, method, parameters } = getRemoveProjectsEndpointParameters({ workD
 
 const path = ['work', 'projects', 'remove']
 
-const func = ({ app, cache, model, reporter }) => async(req, res) => {
+const func = ({ app, cache, reporter }) => async(req, res) => {
   const workKey = await requireImpliedBranch({ reporter, req })
 
   await doRemoveProjects({ app, cache, reporter, req, res, workKey })

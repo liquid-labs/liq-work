@@ -5,7 +5,7 @@ work-liquid-labs/liq-work/1:
     - id: liquid-labs/liq-work/1
       summary: Implement work issue management
   projects:
-    - name: liquid-labs/liq-work
+    - name: '@liquid-labs/liq-work'
       private: true
   started: '2023-01-02'
   startedEpoch: 1676418665873

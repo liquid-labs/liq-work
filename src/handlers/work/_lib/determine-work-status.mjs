@@ -4,10 +4,10 @@ import {
   determineOriginAndMain,
   hasBranch
 } from '@liquid-labs/git-toolkit'
+import { getGitHubOrgAndProjectBasename } from '@liquid-labs/github-toolkit'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { WORKSPACE } from './constants'
-import { determinePathHelper } from './determine-path-helper'
 
 const determineWorkStatus = async({
   allPulls,
@@ -63,7 +63,7 @@ const generateProjectsReport = async({
 
     const projectStatus = {}
     report.projects[projectFQN] = projectStatus
-    const { projectPath } = determinePathHelper({ app, projectFQN })
+    const { projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
 
     const [origin, main] = determineOriginAndMain({ noFetch, projectPath, reporter })
     let remote
@@ -137,7 +137,10 @@ const generateProjectsReport = async({
     // analyze PRs
     projectStatus.pullRequests = []
     reporter.push(`Retrieving pull requests associated with head '${workKey}'...`)
-    let reportPRs = await octocache.paginate(`GET /repos/${projectFQN}/pulls`, { head : workKey, state : 'all' })
+    const { pkgJSON } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
+    const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON : pkgJSON })
+    let reportPRs =
+      await octocache.paginate(`GET /repos/${ghOrg}/${projectBasename}/pulls`, { head : workKey, state : 'all' })
     // As of 2023-03-08, the 'head' argument requires (for cross-repo merges) the name of the individual that
     // requested the pull, which is unknowable. Also (weirdly), if there is no match on the head, it returns
     // everything (?!), so we implement post-processing here

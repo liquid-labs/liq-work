@@ -1,8 +1,13 @@
 import createError from 'http-errors'
 
-import { claimIssues, determineGitHubLogin, verifyIssuesAvailable } from '@liquid-labs/github-toolkit'
+import {
+  claimIssues,
+  determineGitHubLogin,
+  getGitHubOrgAndProjectBasename,
+  verifyIssuesAvailable
+} from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
-import { determineImpliedProject } from '@liquid-labs/liq-projects-lib'
+import { getImpliedPackageJSON } from '@liquid-labs/liq-projects-lib'
 
 import { commonAssignParameters } from './_lib/common-assign-parameters'
 import { commonAddProjectParameters } from './_lib/common-add-project-parameters'
@@ -21,41 +26,51 @@ const parameters = [
     name         : 'projects',
     isMultivalue : true,
     description  : 'The project(s) to include in the new unit of work. If none are specified, then will guess the current implied project based on the client working directory.',
-    optionsFunc  : ({ model }) => Object.keys(model.playground.projects)
+    optionsFunc  : ({ app }) => app.ext._liqProjects.playgroundMonitor.listProjects()
   },
   ...commonAddProjectParameters(),
   ...commonAssignParameters()
 ]
 Object.freeze(parameters)
 
-const func = ({ app, cache, model, reporter }) => async(req, res) => {
+const func = ({ app, cache, reporter }) => async(req, res) => {
   reporter = reporter.isolate()
 
   let { assignee, comment, issues, noAutoAssign = false, projects } = req.vars
   // First, let's process projects. If nothing specified, assume the current, implied project.
   if (projects === undefined) {
-    const currDir = req.get('X-CWD')
-    projects = [determineImpliedProject({ currDir })]
+    // const currProject = getImpliedPackageJSON({ callDesc: 'work start', req}).name
+    const currPkgJSON = await getImpliedPackageJSON({ callDesc : 'work start', req })
+    const currProject = currPkgJSON.name
+    projects = [currProject]
   }
   // Now, make sure all project specs are valid.
   for (const project of projects) {
-    if (model.playground.projects.get(project) === undefined) {
+    if (app.ext._liqProjects.playgroundMonitor.getProjectData(project) === undefined) {
       throw createError.BadRequest(`No such local project '${project}'. Do you need to import it?`)
     }
   }
 
   // Normalize issues as '<org>/<project>/<issue number>'
-  issues = issues.map((i) => i.match(/^\d+$/) ? projects[0] + '/' + i : i)
+  issues = issues.map((i) => {
+    if (i.match(/^\d+$/)) {
+      const { pkgJSON } = app.ext._liqProjects.playgroundMonitor.getProjectData(projects[0])
+      const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON : pkgJSON })
+      return ghOrg + '/' + projectBasename + '/' + i
+    }
+    return i
+  })
 
   const credDB = app.ext.credentialsDB
-  const authToken = credDB.getToken('GITHUB_API')
+  const authToken = await credDB.getToken('GITHUB_API')
 
   const githubLogin = (await determineGitHubLogin({ authToken })).login
-
+  // TODO: this should be an integration hook point
   await verifyIssuesAvailable({ authToken, availableFor : githubLogin, issues, noAutoAssign, reporter })
+  // TODO: this should be an integration hook point
   await claimIssues({ assignee, authToken, comment, issues, reporter })
 
-  const workDB = new WorkDB({ app, authToken, model, reporter })
+  const workDB = new WorkDB({ app, authToken, reporter })
   const workData = await workDB.startWork({ app, issues, projects, reporter })
 
   reporter.push(`Started work '<em>${workData.description}<rst>'.`)

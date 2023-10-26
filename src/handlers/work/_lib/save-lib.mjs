@@ -11,8 +11,7 @@ import {
 } from '@liquid-labs/git-toolkit'
 import { checkGitHubSSHAccess } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
-import { determineImpliedProject } from '@liquid-labs/liq-projects-lib'
-import { LIQ_PLAYGROUND } from '@liquid-labs/liq-defaults'
+import { getImpliedPackageJSON } from '@liquid-labs/liq-projects-lib'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { getCommonImpliedParameters } from './common-implied-parameters'
@@ -42,7 +41,7 @@ const doSave = async({
   checkGitHubSSHAccess()
 
   if (files !== undefined) {
-    saveFiles({ app, backupOnly, description, files, noBackup, reporter, req, summary })
+    await saveFiles({ app, backupOnly, description, files, noBackup, reporter, req, summary })
   }
   else {
     await saveProjects({
@@ -86,21 +85,20 @@ const getSaveEndpointParams = ({ descIntro }) => {
         isMultivalue : true,
         description  : "Rather than saving everything, save only the indicated files. Files are specified in the form '[org/project:]rel/path/to/file'. When the project designation is omitted, the current project is assumed.",
         optionsFunc  : async({ app, cache, lastOptionValue, req, workKey }) => {
-          const currDir = req.get('X-CWD')
-          const [impOrg, impProj] = determineImpliedProject({ currDir }).split('/')
-          const impliedProjectFQN = impOrg + '/' + impProj
-          workKey = workKey || determineCurrentBranch({ projectPath : currDir })
+          // use the current work directory to determine the workKey
+          const projectName = (await getImpliedPackageJSON({ callDesc : 'work save - options', req })).name
+          const { projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectName)
+          workKey = workKey || determineCurrentBranch({ projectPath })
 
           const workDB = new WorkDB({ app, cache })
 
           const projectOptions = () => workDB.requireData(workKey).projects
             .map((p) => p.name + ':')
-            .filter((p) => p !== impOrg + '/' + impProj + ':')
+            .filter((p) => p !== projectName + ':')
 
-          const fileOptions = async({ relPath, partial, projectFQN, terminal }) => {
-            console.log('relPath:', relPath, 'partial:', partial)
-
-            const pathBits = [LIQ_PLAYGROUND(), ...projectFQN.split('/')]
+          const fileOptions = async({ relPath, partial, projectName, terminal }) => {
+            const { projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectName)
+            const pathBits = [projectPath]
             if (relPath !== undefined) {
               pathBits.push(relPath)
             }
@@ -138,7 +136,7 @@ const getSaveEndpointParams = ({ descIntro }) => {
                 return await fileOptions({
                   relPath  : relPath ? fsPath.dirname(relPath) : '',
                   partial  : relPath ? fsPath.basename(relPath) : partial,
-                  projectFQN,
+                  projectName,
                   terminal : true
                 })
               }
@@ -147,15 +145,15 @@ const getSaveEndpointParams = ({ descIntro }) => {
           }
 
           if (!lastOptionValue || lastOptionValue.trim() === '') {
-            return projectOptions().concat(await fileOptions({ projectFQN : impliedProjectFQN }))
+            return projectOptions().concat(await fileOptions({ projectName }))
           }
           else if (lastOptionValue.indexOf(':') !== -1) {
-            const [projectFQN, relPath] = lastOptionValue.split(':')
-            return await fileOptions({ projectFQN, relPath })
+            const [projectName, relPath] = lastOptionValue.split(':')
+            return await fileOptions({ projectName, relPath })
           }
           else {
             return projectOptions().filter((p) => p.startsWith(lastOptionValue))
-              .concat(await fileOptions({ projectFQN : impliedProjectFQN, relPath : lastOptionValue }))
+              .concat(await fileOptions({ projectName, relPath : lastOptionValue }))
           }
         }
       },
@@ -177,48 +175,48 @@ const getSaveEndpointParams = ({ descIntro }) => {
   return endpointParams
 }
 
-const saveFiles = ({ app, backupOnly, description, files, noBackup, reporter, req, summary }) => {
-  let impOrg, impProj
-  files = files.map((f) => {
+const saveFiles = async({ app, backupOnly, description, files, noBackup, reporter, req, summary }) => {
+  let impProj, npmName, projectPath
+  files = await Promise.all(files.map(async(f) => {
     if (f.indexOf(':') === -1) {
       if (impProj === undefined) {
-        const currDir = req.get('X-CWD');
-        ([impOrg, impProj] = determineImpliedProject({ currDir }).split('/'))
+        npmName = (await getImpliedPackageJSON({ callDesc : 'work save', req })).name;
+        ({ projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(npmName))
       }
 
-      return [impOrg, impProj, f, fsPath.join(LIQ_PLAYGROUND(), impOrg, impProj)]
+      return [npmName, f, projectPath]
     }
     else {
       const [projectFQN, relFile] = f.split(':')
-      const [org, proj] = projectFQN.split('/')
-      return [org, proj, relFile, fsPath.join(LIQ_PLAYGROUND(), org, proj)]
+      npmName = projectFQN;
+      ({ projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(npmName))
+      return [npmName, relFile, projectPath]
     }
-  })
+  }))
   // 'files' now a list of [ org, proj, relFile ]
-
-  for (const [org, proj, relFile, repoPath] of files) {
+  for (const [npmName, relFile, repoPath] of files) {
     const filePath = fsPath.join(repoPath, relFile)
 
     if (!existsSync(filePath)) {
-      throw createError.NotFound(`No such file '${org}/${proj}:${relFile}' found to save.`)
+      throw createError.NotFound(`No such file '${npmName}:${relFile}' found to save.`)
     }
     else if (tryExec(`cd '${repoPath}' && git status --porcelain=v1 -- ${relFile}`).stdout.trim().length === 0) {
-      throw createError.BadRequest(`File '${org}/${proj}:${relFile}' is unchanged.`)
+      throw createError.BadRequest(`File '${npmName}:${relFile}' is unchanged.`)
     }
   }
   // we've now verified everything
 
   const projectIndex = {}
-  for (const [org, proj, relFile, repoPath] of files) {
+  for (const [npmName, relFile, repoPath] of files) {
     if (backupOnly !== true) {
-      reporter.push(`Staging ${org}/${proj}:${relFile}...`)
+      reporter.push(`Staging ${npmName}:${relFile}...`)
       tryExec(`cd '${repoPath}' && git add ${relFile}`)
     }
-    projectIndex[org + '/' + proj] = repoPath
+    projectIndex[npmName] = repoPath
   }
   if (noBackup !== true) {
-    for (const [projectFQN, repoPath] of Object.entries(projectIndex)) {
-      reporter.push(`Committing and pushing changes in ${projectFQN}...`)
+    for (const [projectName, repoPath] of Object.entries(projectIndex)) {
+      reporter.push(`Committing and pushing changes in ${projectName}...`)
       const commitCommand = `cd '${repoPath}' && git commit -m '${summary.replaceAll(/'/g, '\'"\'"\'')}'`
         + (description === undefined ? '' : ` -m '${description.replaceAll(/'/g, '\'"\'"\'')}'`)
       tryExec(commitCommand)
@@ -245,11 +243,12 @@ const saveProjects = async({
   ([projects, workKey] =
     await determineProjects({ all, cliEndpoint : 'work save', projects, reporter, req, workDB, workKey }))
 
-  for (const projectFQN of projects) {
-    const [org, project] = projectFQN.split('/')
-    const projectPath = fsPath.join(LIQ_PLAYGROUND(), org, project)
+  for (const project of projects) {
+    const { projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(project)
+
     const currBranch = determineCurrentBranch({ projectPath, reporter })
-    reporter.push(`Processing <code>${projectFQN}<rst>...`)
+
+    reporter.push(`Processing <code>${project}<rst>...`)
     if (currBranch !== workKey) {
       reporter.push(`  <em>skipping<rst>; not on work branch <code>${workKey}<rst>`)
       continue
