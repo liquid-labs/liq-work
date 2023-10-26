@@ -1,5 +1,3 @@
-import * as fsPath from 'node:path'
-
 import createError from 'http-errors'
 
 import { readFJSON, writeFJSON } from '@liquid-labs/federated-json'
@@ -11,7 +9,7 @@ import {
   workBranchName,
   verifyIsOnBranch
 } from '@liquid-labs/git-toolkit'
-import { determineGitHubLogin } from '@liquid-labs/github-toolkit'
+import { determineGitHubLogin, getGitHubOrgAndProjectBasename } from '@liquid-labs/github-toolkit'
 import { crossLinkDevProjects } from '@liquid-labs/liq-projects-lib'
 import { LIQ_PLAYGROUND } from '@liquid-labs/liq-defaults'
 import { Octocache } from '@liquid-labs/octocache'
@@ -23,16 +21,14 @@ const WorkDB = class WorkDB {
   #authToken
   #data
   #dbFilePath
-  #model
   #playgroundPath
   #reporter
 
-  constructor({ app, authToken, model, reporter }) {
+  constructor({ app, authToken, reporter }) {
     this.#dbFilePath = app.ext.constants.WORK_DB_PATH
     this.#playgroundPath = LIQ_PLAYGROUND()
     this.#authToken = authToken // TODO: for security, do wo want to take this on a call by call basis to reduce the numbers of copies? Or do they all point to the same stirng? I think that may bet the case but I don't remember for sure.
     this.#data = readFJSON(this.#dbFilePath, { createOnNone : {} })
-    this.#model = model
     this.#reporter = reporter
   }
 
@@ -69,11 +65,13 @@ const WorkDB = class WorkDB {
     projects = projects.filter((p, i, arr) => i === arr.indexOf(p) && !currProjects.includes(p)) // remove dupes
 
     if (projects.length > 0) {
-      await this.#setupWorkBranches({ projects, reporter, workBranch : workKey })
+      await this.#setupWorkBranches({ app, projects, reporter, workBranch : workKey })
 
       const octocache = new Octocache({ authToken : this.#authToken })
       for (const project of projects) {
-        const projectData = await octocache.request(`GET /repos/${project}`)
+        const { pkgJSON } = app.ext._liqProjects.playgroundMonitor.getProjectData(project)
+        const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON : pkgJSON })
+        const projectData = await octocache.request(`GET /repos/${ghOrg}/${projectBasename}`)
         workData.projects.push({
           name    : project,
           private : projectData.private
@@ -89,7 +87,7 @@ const WorkDB = class WorkDB {
       // that's all projects across all units of work
       const allProjects = Object.keys(Object.values(this.#data)
         .reduce((acc, wd) => { wd.projects.forEach(({ name }) => { acc[name] = true }); return acc }, {}))
-      crossLinkDevProjects({ playground : LIQ_PLAYGROUND(), projects : allProjects, reporter })
+      crossLinkDevProjects({ app, projects : allProjects, reporter })
     }
 
     return structuredClone(workData)
@@ -139,19 +137,21 @@ const WorkDB = class WorkDB {
     return workUnit
   }
 
-  async #setupWorkBranches({ projects, reporter, workBranch }) {
+  async #setupWorkBranches({ app, projects, reporter, workBranch }) {
     const octocache = new Octocache({ authToken : this.#authToken })
     for (const project of projects) {
       reporter.push(`Processing work branch for <em>${project}<rst>...`)
-      const [org, projectBaseName] = project.split('/')
-      const projectPath = fsPath.join(this.#playgroundPath, org, projectBaseName)
+
+      const { pkgJSON, projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(project)
+      const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON : pkgJSON })
 
       let repoData
+      const ghProject = ghOrg + '/' + projectBasename
       try {
-        repoData = await octocache.request(`GET /repos/${org}/${projectBaseName}`)
+        repoData = await octocache.request(`GET /repos/${ghProject}`)
       }
       catch (e) {
-        if (e.status === 404) throw createError.NotFound(`Could not find project '${project}' repo on GitHub: ${e.message}`, { cause : e })
+        if (e.status === 404) throw createError.NotFound(`Could not find project '${project}' repo '${ghProject} on GitHub: ${e.message}`, { cause : e })
       }
       const isPrivate = repoData.private
       const defaultBranch = repoData.default_branch
@@ -161,13 +161,12 @@ const WorkDB = class WorkDB {
         await setupPrivateWork({ octocache, projectFQN : project, projectPath, reporter, workBranch })
       }
       else { // it's a public repo
-        const ghOrg = this.#model.orgs[org]?.getSetting('github.ORG_NAME')
         await setupPublicWork({
-          authToken : this.#authToken,
+          authToken  : this.#authToken,
           ghOrg,
           octocache,
-          org,
-          projectBaseName,
+          projectBasename,
+          projectFQN : project,
           projectPath,
           reporter,
           workBranch
@@ -206,8 +205,8 @@ const WorkDB = class WorkDB {
     // set up issues data
     const issuesData = []
     for (const issue of issues) {
-      const [org, projectBaseName, number] = issue.split('/')
-      const issueData = await octocache.request(`GET /repos/${org}/${projectBaseName}/issues/${number}`)
+      const [org, projectBasename, number] = issue.split('/')
+      const issueData = await octocache.request(`GET /repos/${org}/${projectBasename}/issues/${number}`)
       issuesData.push({
         id      : issue,
         summary : issueData.title
@@ -246,8 +245,8 @@ const setupPublicWork = async({
   authToken,
   ghOrg,
   octocache,
-  org,
-  projectBaseName,
+  projectBasename,
+  projectFQN,
   projectPath,
   reporter,
   workBranch
@@ -256,7 +255,7 @@ const setupPublicWork = async({
   const ghUser = (await determineGitHubLogin({ authToken })).login
   let workRepoData
   try {
-    workRepoData = await octocache.request(`GET /repos/${ghUser}/${projectBaseName}`)
+    workRepoData = await octocache.request(`GET /repos/${ghUser}/${projectBasename}`)
   }
   catch (e) {
     if (e.status !== 404) throw e
@@ -264,25 +263,25 @@ const setupPublicWork = async({
   }
 
   if (!workRepoData) { // then we need to create a fork
-    reporter.push(`Creating fork <em>${ghUser}/${projectBaseName}<rst> (from <bold>${ghOrg}/${projectBaseName}<rst>)`)
+    reporter.push(`Creating fork <em>${ghUser}/${projectBasename}<rst> (from <bold>${ghOrg}/${projectBasename}<rst>)`)
     await octocache.request('POST /repos/{owner}/{repo}/forks', {
       owner               : ghOrg,
-      repo                : projectBaseName,
+      repo                : projectBasename,
       default_branch_only : true
     })
   }
 
   // now, let's see if the remote has been set up
-  if (!hasRemote({ projectPath, remote : WORKSPACE, urlMatch : `/${projectBaseName}(?:[.]git)?(?:\\s|$)` })) {
+  if (!hasRemote({ projectPath, remote : WORKSPACE, urlMatch : `/${projectBasename}(?:[.]git)?(?:\\s|$)` })) {
     if (hasRemote({ projectPath, remote : WORKSPACE })) {
-      throw createError.BadRequest(`Project ${org}/${projectBaseName} has a work remote with an unexpected URL. Check and address.`)
+      throw createError.BadRequest(`Project ${projectFQN} has a work remote with an unexpected URL. Check and address.`)
     }
     // else, really doesn't have a remote; let's create one
-    reporter.push(`Creating local remote '${WORKSPACE}' for '${ghUser}/${projectBaseName}`)
-    tryExec(`cd '${projectPath}' && git remote add ${WORKSPACE} git@github.com:${ghUser}/${projectBaseName}.git`)
+    reporter.push(`Creating local remote '${WORKSPACE}' for '${ghUser}/${projectBasename}`)
+    tryExec(`cd '${projectPath}' && git remote add ${WORKSPACE} git@github.com:${ghUser}/${projectBasename}.git`)
   }
 
-  await checkoutWorkBranch({ octocache, owner : ghUser, projectBaseName, projectPath, remote : WORKSPACE, reporter, workBranch })
+  await checkoutWorkBranch({ octocache, owner : ghUser, projectBasename, projectPath, remote : WORKSPACE, reporter, workBranch })
 }
 
 /**
@@ -290,15 +289,15 @@ const setupPublicWork = async({
  */
 const checkoutWorkBranch = async({
   octocache,
-  owner, // owner + projectBaseName or projectFQN
-  projectBaseName,
+  owner, // owner + projectBasename or projectFQN
+  projectBasename,
   projectFQN,
   projectPath,
   remote,
   reporter,
   workBranch
 }) => {
-  const remoteBranchProject = projectFQN || `${owner}/${projectBaseName}`
+  const remoteBranchProject = projectFQN || `${owner}/${projectBasename}`
 
   let hasRemoteBranch
   try {

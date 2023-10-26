@@ -1,10 +1,8 @@
-import { determineCurrentBranch, determineOriginAndMain } from '@liquid-labs/git-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { Octocache } from '@liquid-labs/octocache'
-import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { commonCleanParameters } from './common-clean-parameters'
-import { determinePathHelper } from './determine-path-helper'
+import { deleteWorkBranches } from './delete-work-branches'
 import { determineWorkStatus } from './determine-work-status'
 import { WorkDB } from './work-db'
 
@@ -24,7 +22,7 @@ const doClean = async({ app, cache, reporter, req, res, workKey }) => {
   const updateLocal = !noUpdateLocal
 
   const credDB = app.ext.credentialsDB
-  const authToken = credDB.getToken('GITHUB_API')
+  const authToken = await credDB.getToken('GITHUB_API')
 
   const octocache = new Octocache({ authToken })
 
@@ -103,25 +101,7 @@ const doCleanWorkUnit = async({
   })
 
   if (deleteBranches === true && !Object.values(statusReport.issues).some((i) => i.state !== 'closed')) {
-    for (const [projectFQN, projectStatus] of Object.entries(statusReport.projects)) {
-      reporter.push(`Considering deleting work branch in project ${projectFQN}...`)
-      if (projectStatus.workBranch?.localBranchFound === true
-          && projectStatus.localChanges?.mergedToRemoteMain === true) {
-        const { projectPath } = determinePathHelper({ app, projectFQN })
-        const currBranch = determineCurrentBranch({ projectPath })
-        if (currBranch === workKey) {
-          const [, main] = determineOriginAndMain({ noFetch, projectPath, reporter })
-          reporter.push(`Switching current branch from '${workKey}' to '${main}' before deleting '${workKey}'...`)
-          tryExec(`cd '${projectPath}' && git checkout ${main}`,
-            { msg : `Cannot switch from branch '${workKey}' to '${main}' in order to delete branch '${workKey}'. You may need to 'commit' or 'stash' your work.` })
-        }
-        tryExec(`cd '${projectPath}' && git branch -d ${workKey}`)
-        projectStatus.workBranch.localBranchRemoved = true
-      }
-      else {
-        reporter.push(`  skipping; local work branch ${projectStatus.workBranch?.localBranchFound !== true ? 'not found' : 'not merged'}.`)
-      }
-    }
+    deleteWorkBranches({ app, noFetch, statusReport, workKey, reporter })
   }
   else if (deleteBranches === true) {
     reporter.push('Skipping consideration of branch deletions due to open issues.')

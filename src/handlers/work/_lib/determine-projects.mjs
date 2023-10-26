@@ -1,7 +1,7 @@
 import createError from 'http-errors'
 
 import { determineCurrentBranch } from '@liquid-labs/git-toolkit'
-import { determineImpliedProject } from '@liquid-labs/liq-projects-lib'
+import { getImpliedPackageJSON } from '@liquid-labs/liq-projects-lib'
 
 const determineProjects = async({ all, cliEndpoint, projects, reporter, req, workDB, workKey }) => {
   // first, we determine the work key
@@ -18,9 +18,8 @@ const determineProjects = async({ all, cliEndpoint, projects, reporter, req, wor
     projects = workUnit.projects.map((wu) => wu.name)
   }
   else if (projects === undefined) {
-    requireCurrDir({ cliEndpoint, currDir })
-
-    projects = [determineImpliedProject({ currDir })]
+    const currProject = (await getImpliedPackageJSON({ callDesc : 'work start', req })).name
+    projects = [currProject]
   }
   else { // else projects is defined, let's make sure they're valid
     // remove duplicates in the list

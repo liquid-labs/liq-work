@@ -5,7 +5,7 @@ const { help, method, parameters } = getListProjectsEndpointParameters({ workDes
 
 const path = ['work', 'projects', 'list']
 
-const func = ({ app, cache, model, reporter }) => async(req, res) => {
+const func = ({ app, cache, reporter }) => async(req, res) => {
   const workKey = await requireImpliedBranch({ reporter, req })
 
   await doListProjects({ app, cache, reporter, req, res, workKey })

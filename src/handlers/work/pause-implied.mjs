@@ -4,7 +4,7 @@ const { help, method, parameters } = getPauseEndpointParams({ descIntro : 'impli
 
 const path = ['work', 'pause']
 
-const func = ({ app, cache, model, reporter }) => async(req, res) => {
+const func = ({ app, cache, reporter }) => async(req, res) => {
   await doPause({ app, cache, reporter, req, res })
 }
 

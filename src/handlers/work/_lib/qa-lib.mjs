@@ -5,11 +5,10 @@ import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { getCommonImpliedParameters } from './common-implied-parameters'
-import { determinePathHelper } from './determine-path-helper'
 import { determineProjects } from './determine-projects'
 import { WorkDB } from './work-db'
 
-const doQA = async({ app, cache, model, reporter, req, res, workKey }) => {
+const doQA = async({ app, cache, reporter, req, res, workKey }) => {
   const { all } = req.vars
   let { projects } = req.vars
 
@@ -21,7 +20,7 @@ const doQA = async({ app, cache, model, reporter, req, res, workKey }) => {
   let msg = ''
 
   for (const projectFQN of projects) {
-    const { projectPath } = determinePathHelper({ app, projectFQN })
+    const { projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
 
     tryExec(`cd '${projectPath}' && npm run qa`, { noThrow : true })
 

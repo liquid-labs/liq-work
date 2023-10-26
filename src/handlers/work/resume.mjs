@@ -18,7 +18,7 @@ const parameters = []
 
 const path = ['work', ':workKey', 'resume']
 
-const func = ({ app, cache, model, reporter }) => async(req, res) => {
+const func = ({ app, cache, reporter }) => async(req, res) => {
   reporter = reporter.isolate()
 
   const { workKey } = req.vars

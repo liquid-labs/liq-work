@@ -10,7 +10,7 @@ import { tryExec } from '@liquid-labs/shell-toolkit'
 import { requireImpliedBranch } from '../../_lib/require-implied-work'
 import { WorkDB } from '../../_lib/work-db'
 
-const doRemoveProjects = async({ app, cache, model, reporter, req, res, workKey }) => {
+const doRemoveProjects = async({ app, cache, reporter, req, res, workKey }) => {
   reporter = reporter.isolate()
 
   const { allowUnclean = false, forgetChanges = false, projects } = req.vars

@@ -8,7 +8,7 @@ const doStatus = async({ app, cache, reporter, req, res, workKey }) => {
   const { allPulls, noFetch, updateLocal } = req.vars
 
   const credDB = app.ext.credentialsDB
-  const authToken = credDB.getToken('GITHUB_API')
+  const authToken = await credDB.getToken('GITHUB_API')
 
   const octocache = new Octocache({ authToken })
 

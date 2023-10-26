@@ -1,10 +1,6 @@
-import createError from 'http-errors'
-
 import { extractParameters } from '@liquid-labs/condition-eval'
 
-const prepareQuestionsFromControls = ({ title, key, controlSetMap }) => {
-  const controlSetBurndownList = Object.keys(controlSetMap)
-  const controlSetsProcessed = []
+const prepareQuestionsFromControls = ({ title, key, controlsSpec }) => {
   const questionBundle = {
     title,
     key,
@@ -13,49 +9,13 @@ const prepareQuestionsFromControls = ({ title, key, controlSetMap }) => {
     env            : {}
   }
 
-  for (let questionBundleSubSet = processNextControlSet({ controlSetMap, controlSetBurndownList, controlSetsProcessed });
-    questionBundleSubSet !== null;
-    questionBundleSubSet = processNextControlSet({ controlSetMap, controlSetBurndownList, controlSetsProcessed })) {
-    questionBundle.actions.push(...questionBundleSubSet.actions)
-    questionBundle.varsReferenced.push(...questionBundleSubSet.varsReferenced)
+  for (const { actions } of controlsSpec.controls) {
+    questionBundle.actions.push(...actions)
   }
 
-  questionBundle.actions.push({ review : 'questions' })
-
-  // filter out duplicate vars
-  questionBundle.varsReferenced = questionBundle.varsReferenced.filter((v, i, arr) => i === arr.indexOf(v))
+  questionBundle.varsReferenced = extractAllParameters({ actions : questionBundle.actions })
 
   return questionBundle
-}
-
-const processNextControlSet = ({ controlSetMap, controlSetBurndownList, controlSetsProcessed }) => {
-  for (const ctrlSetName of controlSetBurndownList) {
-    const { controls, depends } = controlSetMap[ctrlSetName]
-    if (depends === undefined || controlSetsProcessed.includes(ctrlSetName)) {
-      const questionBundle = processControls({ controls })
-      controlSetBurndownList.splice(controlSetBurndownList.indexOf(ctrlSetName), 1)
-      controlSetsProcessed.push(ctrlSetName)
-      return questionBundle
-    }
-  }
-  // because we return within the for-loop, we should only fall out when we're completely done
-
-  if (controlSetBurndownList.length === 0) { return null }
-  else {
-    throw createError.BadRequest(`There are unmet dependencies in control sets: ${controlSetBurndownList.join(', ')}`)
-  }
-}
-
-const processControls = ({ controls }) => {
-  const allActions = []
-  for (const { actions } of controls) {
-    if (actions !== undefined) { allActions.push(...actions) }
-  }
-
-  return {
-    actions        : allActions,
-    varsReferenced : extractAllParameters({ actions : allActions })
-  }
 }
 
 const extractAllParameters = ({ actions }) => {
@@ -65,14 +25,14 @@ const extractAllParameters = ({ actions }) => {
     if (condition !== undefined) { allVars.push(...extractParameters({ expression : condition })) }
     if (elseSource !== undefined) { allVars.push(...extractParameters({ expression : elseSource })) }
     if (maps !== undefined) {
-      allVars.push(...extractMappingParamters({ maps }))
+      allVars.push(...extractMappingParameters({ maps }))
     }
   }
 
   return allVars
 }
 
-const extractMappingParamters = ({ maps }) => {
+const extractMappingParameters = ({ maps }) => {
   const allVars = []
   for (const { parameter, source } of maps) {
     allVars.push(parameter)

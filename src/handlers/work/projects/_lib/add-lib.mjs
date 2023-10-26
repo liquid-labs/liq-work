@@ -4,14 +4,14 @@ import { commonAddProjectParameters } from '../../_lib/common-add-project-parame
 import { requireImpliedBranch } from '../../_lib/require-implied-work'
 import { WorkDB } from '../../_lib/work-db'
 
-const doAddProjects = async({ app, cache, model, reporter, req, res, workKey }) => {
+const doAddProjects = async({ app, cache, reporter, req, res, workKey }) => {
   reporter = reporter.isolate()
 
   const { projects } = req.vars
 
   const credDB = app.ext.credentialsDB
-  const authToken = credDB.getToken('GITHUB_API')
-  const workDB = new WorkDB({ app, authToken, model, reporter })
+  const authToken = await credDB.getToken('GITHUB_API')
+  const workDB = new WorkDB({ app, authToken, reporter })
 
   const updatedWorkData = await workDB.addProjects({ app, projects, reporter, workKey })
 
@@ -31,15 +31,15 @@ const getAddProjectsEndpointParameters = ({ workDesc }) => {
       name         : 'projects',
       isMultivalue : true,
       description  : 'The project to add to the unit of work. May be specify multiple projects.',
-      optionsFunc  : async({ app, cache, model, req, workKey }) => {
+      optionsFunc  : async({ app, cache, req, workKey }) => {
         workKey = workKey || await requireImpliedBranch({ req })
 
         const credDB = app.ext.credentialsDB
-        const authToken = credDB.getToken('GITHUB_API')
+        const authToken = await credDB.getToken('GITHUB_API')
         const workDB = new WorkDB({ app, authToken })
         const currProjects = workDB.getData(workKey).projects?.map((p) => p.name)
 
-        return Object.keys(model.playground.projects).filter((p) => !currProjects.includes(p))
+        return app.ext._liqProjects.playgroundMonitor.listProjects().filter((p) => !currProjects.includes(p))
       }
     },
     ...commonAddProjectParameters()
