@@ -1,8 +1,4 @@
-import * as fsPath from 'node:path'
-import * as fs from 'node:fs/promises'
-
 import createError from 'http-errors'
-import yaml from 'js-yaml'
 
 import { determineOriginAndMain, verifyBranchInSync, verifyClean } from '@liquid-labs/git-toolkit'
 import { getGitHubOrgAndProjectBasename } from '@liquid-labs/github-toolkit'
@@ -77,39 +73,28 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
     // we iterate over the projects
     const interogationBundles = await Promise.all(projects.map(async({ name: projectFQN }) => {
       const { pkgJSON, projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
+      const { name: projectName } = pkgJSON
 
-      const pkgSubmitControlsPath = fsPath.join(projectPath, 'controls', 'work-submit.qcontrols.yaml')
-      let controlsContent
-      // load controlsContent
-      try {
-        controlsContent = await fs.readFile(pkgSubmitControlsPath, { encoding : 'utf8' })
+      const supportsControls = app.ext.integrations.hasHook({
+        providerFor : 'controls',
+        hook        : 'getQuestionControls'
+      })
+
+      if (supportsControls === false) {
+        return {}
       }
-      catch (e) {
-        if (e.code !== 'ENOENT') {
-          throw e
-        } // else, no problem, just doesn't define the control at the package level
-        const [orgKey] = projectFQN.split('/')
-        const org = app.ext._liqOrgs.orgs[orgKey]
-        if (org !== undefined) {
-          const { projectPath: orgProjectPath } = org
-          const orgSubmitControlsPath =
-            fsPath.join(orgProjectPath, 'data', 'org', 'controls', 'work-submit.qcontrols.yaml')
-          try {
-            controlsContent = await fs.readFile(orgSubmitControlsPath)
-          }
-          catch (e) {
-            if (e.code !== 'ENOENT') {
-              throw (e)
-            }
-          }
-        }
-      } // controlsContent load section
-      if (controlsContent === undefined) {
+
+      const controlsSpec = app.ext.integrations.callHook({
+        providerFor : 'controls',
+        hook        : 'getQuestionControls',
+        hookArgs    : { app, controlsName : 'work-submit', projectName, reporter }
+      })
+
+      if (controlsSpec === undefined) {
         return {}
       }
       else {
         const title = `Project ${projectFQN} submission`
-        const controlsSpec = yaml.load(controlsContent)
 
         const questionBundle = prepareQuestionsFromControls({ title, key : projectFQN, controlsSpec })
         const { env /* varsReferenced */ } = questionBundle
