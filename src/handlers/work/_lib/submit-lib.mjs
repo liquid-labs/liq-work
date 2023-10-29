@@ -1,8 +1,4 @@
-import * as fsPath from 'node:path'
-import * as fs from 'node:fs/promises'
-
 import createError from 'http-errors'
-import yaml from 'js-yaml'
 
 import { determineOriginAndMain, verifyBranchInSync, verifyClean } from '@liquid-labs/git-toolkit'
 import { getGitHubOrgAndProjectBasename } from '@liquid-labs/github-toolkit'
@@ -77,10 +73,11 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
     // we iterate over the projects
     const interogationBundles = await Promise.all(projects.map(async({ name: projectFQN }) => {
       const { pkgJSON, projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
+      const { name: projectName } = pkgJSON
 
       const supportsControls = app.ext.integrations.hasHook({
-        providerFor: 'controls',
-        hook: 'getQuestionControls',
+        providerFor : 'controls',
+        hook        : 'getQuestionControls'
       })
 
       if (supportsControls === false) {
@@ -88,9 +85,9 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
       }
 
       const controlsSpec = app.ext.integrations.callHook({
-        providerFor: 'controls',
-        hook: 'getQuestionControls',
-        hookArgs: { app, controlsName: 'work-submit', projectName, reporter }
+        providerFor : 'controls',
+        hook        : 'getQuestionControls',
+        hookArgs    : { app, controlsName : 'work-submit', projectName, reporter }
       })
 
       if (controlsSpec === undefined) {
