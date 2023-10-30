@@ -1,0 +1,85 @@
+Test git rev: 635e557f255b59bedcd7ba21cf36abf492dcc60f
+PASS handlers/work/_lib/test/determine-projects.test.js
+PASS handlers/work/_lib/test/work-db.test.js
+--------------------------------------|---------|----------|---------|---------|---------------------------------------
+File                                  | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                     
+--------------------------------------|---------|----------|---------|---------|---------------------------------------
+All files                             |    3.23 |     1.29 |    3.24 |     3.3 |                                       
+ src                                  |       0 |        0 |       0 |       0 |                                       
+  index.js                            |       0 |        0 |       0 |       0 | 1-5                                   
+  setup.mjs                           |       0 |        0 |       0 |       0 | 1-17                                  
+ src/handlers                         |       0 |        0 |       0 |       0 |                                       
+  index.js                            |       0 |        0 |       0 |       0 | 1                                     
+ src/handlers/work                    |       0 |        0 |       0 |       0 |                                       
+  build-implied.mjs                   |       0 |        0 |       0 |       0 | 1-25                                  
+  build.mjs                           |       0 |      100 |       0 |       0 | 1-11                                  
+  clean-implied.mjs                   |       0 |        0 |       0 |       0 | 1-20                                  
+  clean.mjs                           |       0 |      100 |       0 |       0 | 1-13                                  
+  close-implied.mjs                   |       0 |        0 |       0 |       0 | 1-20                                  
+  close.mjs                           |       0 |      100 |       0 |       0 | 1-13                                  
+  index.js                            |       0 |        0 |       0 |       0 | 1-44                                  
+  pause-implied.mjs                   |       0 |      100 |       0 |       0 | 1-9                                   
+  pause.mjs                           |       0 |      100 |       0 |       0 | 1-11                                  
+  qa-implied.mjs                      |       0 |        0 |       0 |       0 | 1-25                                  
+  qa.mjs                              |       0 |      100 |       0 |       0 | 1-11                                  
+  resume.mjs                          |       0 |        0 |       0 |       0 | 1-75                                  
+  save-implied.mjs                    |       0 |        0 |       0 |       0 | 1-11                                  
+  save.mjs                            |       0 |      100 |       0 |       0 | 1-11                                  
+  start.mjs                           |       0 |        0 |       0 |       0 | 1-79                                  
+  status-implied.mjs                  |       0 |        0 |       0 |       0 | 1-20                                  
+  status.mjs                          |       0 |      100 |       0 |       0 | 1-13                                  
+  submit-implied.mjs                  |       0 |        0 |       0 |       0 | 1-27                                  
+  submit.mjs                          |       0 |      100 |       0 |       0 | 1-11                                  
+ src/handlers/work/_lib               |    6.07 |     1.81 |    7.07 |    5.82 |                                       
+  answer-set-to-md.mjs                |       0 |        0 |       0 |       0 | 1-119                                 
+  build-lib.mjs                       |       0 |      100 |       0 |       0 | 1-34                                  
+  clean-lib.mjs                       |       0 |        0 |       0 |       0 | 1-161                                 
+  close-lib.mjs                       |       0 |        0 |       0 |       0 | 1-97                                  
+  common-add-project-parameters.mjs   |       0 |      100 |       0 |       0 | 1-8                                   
+  common-assign-parameters.mjs        |       0 |      100 |       0 |       0 | 1-22                                  
+  common-clean-parameters.mjs         |       0 |      100 |     100 |       0 | 1-22                                  
+  common-implied-parameters.mjs       |       0 |      100 |       0 |       0 | 1-12                                  
+  common-issues-parameters.mjs        |       0 |      100 |       0 |       0 | 1-8                                   
+  constants.mjs                       |     100 |      100 |     100 |     100 |                                       
+  delete-work-branches.mjs            |       0 |        0 |       0 |       0 | 1-24                                  
+  determine-projects.mjs              |    92.3 |    71.42 |     100 |    91.3 | 30,40                                 
+  determine-work-status.mjs           |       0 |        0 |       0 |       0 | 1-165                                 
+  pause-lib.mjs                       |       0 |        0 |       0 |       0 | 1-79                                  
+  prepare-questions-from-controls.mjs |       0 |        0 |       0 |       0 | 1-42                                  
+  qa-lib.mjs                          |       0 |        0 |       0 |       0 | 1-48                                  
+  require-implied-work.mjs            |       0 |        0 |       0 |       0 | 1-12                                  
+  save-lib.mjs                        |       0 |        0 |       0 |       0 | 1-277                                 
+  status-lib.mjs                      |       0 |      100 |       0 |       0 | 1-70                                  
+  submit-lib.mjs                      |       0 |        0 |       0 |       0 | 1-315                                 
+  work-db.mjs                         |   13.29 |        0 |     7.4 |   14.68 | 36-98,105-235,240-241,254-284,300-329 
+ src/handlers/work/issues             |       0 |        0 |       0 |       0 |                                       
+  add-implied.mjs                     |       0 |      100 |       0 |       0 | 1-12                                  
+  add.js                              |       0 |      100 |       0 |       0 | 1-11                                  
+  index.js                            |       0 |        0 |       0 |       0 | 1-8                                   
+  list-implied.mjs                    |       0 |      100 |       0 |       0 | 1-12                                  
+  list.mjs                            |       0 |      100 |       0 |       0 | 1-11                                  
+  remove-implied.mjs                  |       0 |      100 |       0 |       0 | 1-12                                  
+  remove.js                           |       0 |      100 |       0 |       0 | 1-11                                  
+ src/handlers/work/issues/_lib        |       0 |        0 |       0 |       0 |                                       
+  add-lib.mjs                         |       0 |        0 |       0 |       0 | 1-77                                  
+  list-lib.mjs                        |       0 |        0 |       0 |       0 | 1-67                                  
+  remove-lib.mjs                      |       0 |        0 |       0 |       0 | 1-73                                  
+ src/handlers/work/projects           |       0 |        0 |       0 |       0 |                                       
+  add-implied.mjs                     |       0 |      100 |       0 |       0 | 1-12                                  
+  add.mjs                             |       0 |      100 |       0 |       0 | 1-11                                  
+  index.js                            |       0 |        0 |       0 |       0 | 1-8                                   
+  list-implied.mjs                    |       0 |      100 |       0 |       0 | 1-12                                  
+  list.mjs                            |       0 |      100 |       0 |       0 | 1-11                                  
+  remove-implied.mjs                  |       0 |      100 |       0 |       0 | 1-12                                  
+  remove.mjs                          |       0 |      100 |       0 |       0 | 1-11                                  
+ src/handlers/work/projects/_lib      |       0 |        0 |       0 |       0 |                                       
+  add-lib.mjs                         |       0 |        0 |       0 |       0 | 1-58                                  
+  list-lib.mjs                        |       0 |        0 |       0 |       0 | 1-65                                  
+  remove-lib.mjs                      |       0 |        0 |       0 |       0 | 1-123                                 
+--------------------------------------|---------|----------|---------|---------|---------------------------------------
+
+Test Suites: 2 passed, 2 total
+Tests:       7 passed, 7 total
+Snapshots:   0 total
+Time:        1.243 s
+Ran all test suites.
