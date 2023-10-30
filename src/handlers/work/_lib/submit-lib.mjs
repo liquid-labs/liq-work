@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs'
+import * as fsPath from 'node:path'
+
 import createError from 'http-errors'
 
 import { determineOriginAndMain, verifyBranchInSync, verifyClean } from '@liquid-labs/git-toolkit'
@@ -84,7 +87,7 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
         return {}
       }
 
-      const controlsSpec = app.ext.integrations.callHook({
+      const controlsSpec = await app.ext.integrations.callHook({
         providerFor : 'controls',
         hook        : 'getQuestionControls',
         hookArgs    : { app, controlsName : 'work-submit', projectName, reporter }
@@ -109,8 +112,9 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
 
         if (noQA === true) {
           // 'NONE' is a reserved word that evaluations to 0
-          env.CHANGES_UNIT_TEST_REPORT_URL = 'TEST SKIPPED'
-          env.CHANGES_LINT_REPORT_URL = 'LINT SKIPPED'
+          env.WORK_SUBMIT_UNIT_TEST_REPORT_URL = 'TEST SKIPPED'
+          env.WORK_SUBMIT_LINT_REPORT_URL = 'LINT SKIPPED'
+          env.WORK_SUBMIT_HAS_QA_EXCEPTIONS = false
         }
         else {
           const qaFileLinkIndex = await app.ext.integrations.callHook({
@@ -122,9 +126,12 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
 
           for (const qaFile of Object.keys(qaFileLinkIndex)) {
             const { fileType, url } = qaFileLinkIndex[qaFile]
-            const urlParam = 'CHANGES_' + fileType.replaceAll(/ /g, '_').toUpperCase() + '_REPORT_URL'
+            const urlParam = 'WORK_SUBMIT_' + fileType.replaceAll(/ /g, '_').toUpperCase() + '_REPORT_URL'
             env[urlParam] = url
           }
+
+          const unitTestPassedMarkerPath = fsPath.join(projectPath, 'qa', '.unit-test.passed')
+          env.WORK_SUBMIT_HAS_QA_EXCEPTIONS = !existsSync(unitTestPassedMarkerPath)
         }
 
         return questionBundle
@@ -141,7 +148,8 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
     }
     // else, there are no questions to ask, let's move on
   } // if (answers === undefined); else:
-  const answerData = JSON.parse(answers || '{}')
+
+  const answerData = JSON.parse(answers || '[]')
   for (const { name: projectFQN } of projects) {
     if (!answerData.some((a) => a.key === projectFQN)) {
       throw createError.BadRequest(`Missing attestation results (qna answers) for project '${projectFQN}'.`)
