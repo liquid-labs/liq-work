@@ -1,6 +1,12 @@
 import { doClean, getCleanEndpointParameters } from './_lib/clean-lib'
 
-const { help, method, parameters } = getCleanEndpointParameters({ workDesc : 'named' })
+const { help, method, parameters } = getCleanEndpointParameters({
+  alternateTo : {
+    altId     : '/work/clean',
+    variation : 'explicitly name the unit of work'
+  },
+  workDesc : 'named'
+})
 
 const path = ['work', ':workKey', 'clean']
 

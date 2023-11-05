@@ -1,6 +1,12 @@
 import { doSubmit, getSubmitEndpointParams } from './_lib/submit-lib'
 
-const { help, method, parameters } = getSubmitEndpointParams({ descIntro : 'Submits the changes associated with a unit of work by creating a pull request for the changes in each project associated with the unit of work.' })
+const { help, method, parameters } = getSubmitEndpointParams({
+  alternateTo : {
+    altId     : '/work/submit',
+    variation : 'explicitly name the unit of work'
+  },
+  descIntro : 'Submits the changes associated with a unit of work by creating a pull request for the changes in each project associated with the unit of work.'
+})
 
 const path = ['work', ':workKey', 'submit']
 

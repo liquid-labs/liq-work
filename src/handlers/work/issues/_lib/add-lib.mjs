@@ -36,8 +36,9 @@ const doAddIssues = async({ app, cache, reporter, req, res, workKey }) => {
   })
 }
 
-const getIssuesAddEndpointParameters = ({ workDesc }) => {
+const getIssuesAddEndpointParameters = ({ alternateTo, workDesc }) => {
   const help = {
+    alternateTo,
     name        : 'Work issues add',
     summary     : `Add issues to the ${workDesc} unit of work.`,
     description : `Adds one or more issues to the ${workDesc} unit of work.`

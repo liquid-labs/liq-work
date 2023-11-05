@@ -36,7 +36,7 @@ const doRemoveIssues = async({ app, cache, reporter, req, res, workKey }) => {
   })
 }
 
-const getIssuesRemoveEndpointParameters = ({ workDesc }) => {
+const getIssuesRemoveEndpointParameters = ({ alternateTo, workDesc }) => {
   const parameters = [
     {
       name        : 'comment',
@@ -59,6 +59,7 @@ const getIssuesRemoveEndpointParameters = ({ workDesc }) => {
 
   return {
     help : {
+      alternateTo,
       name        : 'Work issues remove',
       summary     : `Remove issues from the ${workDesc} unit of work.`,
       description : `Removes issues from the ${workDesc} unit of work.`

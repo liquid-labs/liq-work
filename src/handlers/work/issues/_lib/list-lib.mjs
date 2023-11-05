@@ -3,7 +3,7 @@ import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { WorkDB } from '../../_lib/work-db'
 
-const getIssuesListEndpointParameters = ({ workDesc }) => {
+const getIssuesListEndpointParameters = ({ alternateTo, workDesc }) => {
   const parameters = [
     {
       name        : 'browseEach',
@@ -16,6 +16,7 @@ const getIssuesListEndpointParameters = ({ workDesc }) => {
 
   return {
     help : {
+      alternateTo,
       name        : 'Work issues list',
       summary     : `List the ${workDesc} work issues.`,
       description : `Lists the issues associated with the ${workDesc} unit of work.`
@@ -41,7 +42,6 @@ const doListIssues = async({ app, cache, reporter, req, res, workKey }) => {
 
   const workDB = new WorkDB({ app })
   const workData = await workDB.getData(workKey)
-  console.log('workData:', workData) // DEBUg
 
   if (browseEach === true) {
     for (const { id } of workData.issues) {

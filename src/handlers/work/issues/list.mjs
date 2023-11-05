@@ -1,6 +1,12 @@
 import { doListIssues, getIssuesListEndpointParameters } from './_lib/list-lib'
 
-const { help, method, parameters } = getIssuesListEndpointParameters({ workDesc : 'named' })
+const { help, method, parameters } = getIssuesListEndpointParameters({
+  alternateTo : {
+    altId     : '/work/issues/list',
+    variation : 'explicitly name the unit of work'
+  },
+  workDesc : 'named'
+})
 
 const path = ['work', ':workKey', 'issues', 'list']
 
