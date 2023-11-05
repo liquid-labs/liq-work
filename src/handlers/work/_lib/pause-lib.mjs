@@ -73,11 +73,11 @@ const doPause = async({ app, cache, reporter, req, res, workKey }) => {
 }
 
 const getPauseEndpointParams = ({ alternateTo, desc }) => ({
-  help       : {
+  help : {
     alternateTo,
-    name: 'Pause work',
-    summary: `Pauses the ${desc} unit of work.`,
-    description: `Pauses the ${desc} unit of work, switching each involved project back to the main branch and re-installing the package. This is an all or nothing process and it will fail with no changes unless all the projects are currently on the work branch and clean or on the main branch (in any state).`,
+    name        : 'Pause work',
+    summary     : `Pauses the ${desc} unit of work.`,
+    description : `Pauses the ${desc} unit of work, switching each involved project back to the main branch and re-installing the package. This is an all or nothing process and it will fail with no changes unless all the projects are currently on the work branch and clean or on the main branch (in any state).`
   },
   method     : 'put',
   parameters : []

@@ -1,11 +1,11 @@
 import { doQA, getQAEndpointParams } from './_lib/qa-lib'
 
 const { help, method, parameters } = getQAEndpointParams({
-  alternateTo: {
-    altId: '/work/qa',
-    variation: 'explicitly name the unit of work'
+  alternateTo : {
+    altId     : '/work/qa',
+    variation : 'explicitly name the unit of work'
   },
-  workDesc : 'indicated' 
+  workDesc : 'indicated'
 })
 
 const path = ['work', ':workKey', 'qa']

@@ -1,11 +1,11 @@
 import { doRemoveProjects, getRemoveProjectsEndpointParameters } from './_lib/remove-lib'
 
 const { help, method, parameters } = getRemoveProjectsEndpointParameters({
-  alternateTo: {
-    altId: '/work/projects/remove',
-    variation: 'explicitly name the unit of work'
+  alternateTo : {
+    altId     : '/work/projects/remove',
+    variation : 'explicitly name the unit of work'
   },
-  workDesc : 'named' 
+  workDesc : 'named'
 })
 
 const path = ['work', ':workKey', 'projects', 'remove']

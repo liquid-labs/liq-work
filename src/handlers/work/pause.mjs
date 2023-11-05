@@ -1,11 +1,11 @@
 import { getPauseEndpointParams, doPause } from './_lib/pause-lib'
 
 const { help, method, parameters } = getPauseEndpointParams({
-  alternateTo: {
-    altId: '/work/pause',
-    variation: 'explicitly name the unit of work'
+  alternateTo : {
+    altId     : '/work/pause',
+    variation : 'explicitly name the unit of work'
   },
-  desc : 'named' 
+  desc : 'named'
 })
 
 const path = ['work', ':workKey', 'pause']

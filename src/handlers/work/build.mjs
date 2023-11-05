@@ -1,11 +1,11 @@
 import { doBuild, getBuildEndpointParams } from './_lib/build-lib'
 
 const { help, method, parameters } = getBuildEndpointParams({
-  alternateTo: {
-    altId: '/work/build',
-    variation: 'explicitly name the unit of work'
+  alternateTo : {
+    altId     : '/work/build',
+    variation : 'explicitly name the unit of work'
   },
-  workDesc : 'indicated',
+  workDesc : 'indicated'
 })
 
 const path = ['work', ':workKey', 'build']

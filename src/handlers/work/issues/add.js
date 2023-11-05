@@ -1,11 +1,11 @@
 import { doAddIssues, getIssuesAddEndpointParameters } from './_lib/add-lib'
 
 const { help, method, parameters } = getIssuesAddEndpointParameters({
-  alternateTo: {
-    altId: '/work/issues/add',
-    variation: 'explicitly name the unit of work'
+  alternateTo : {
+    altId     : '/work/issues/add',
+    variation : 'explicitly name the unit of work'
   },
-  workDesc : 'named' 
+  workDesc : 'named'
 })
 
 const path = ['work', ':workKey', 'issues', 'add']

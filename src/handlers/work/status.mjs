@@ -1,11 +1,11 @@
 import { doStatus, getStatusEndpointParameters } from './_lib/status-lib'
 
 const { help, method, parameters } = getStatusEndpointParameters({
-  alternateTo: {
-    altId: '/work/status',
-    variation: 'explicitly name the unit of work'
+  alternateTo : {
+    altId     : '/work/status',
+    variation : 'explicitly name the unit of work'
   },
-  workDesc : 'indicated' 
+  workDesc : 'indicated'
 })
 
 const path = ['work', ':workKey', 'status']
