@@ -72,8 +72,13 @@ const doPause = async({ app, cache, reporter, req, res, workKey }) => {
   httpSmartResponse({ msg, req, res })
 }
 
-const getPauseEndpointParams = ({ desc }) => ({
-  help       : `Pauses the ${desc} unit of work, switching each involved project back to the main branch and re-installing the package. This is an all or nothing process and it will fail with no changes unless all the projects are currently on the work branch and clean or on the main branch (in any state).`,
+const getPauseEndpointParams = ({ alternateTo, desc }) => ({
+  help       : {
+    alternateTo,
+    name: 'Pause work',
+    summary: `Pauses the ${desc} unit of work.`,
+    description: `Pauses the ${desc} unit of work, switching each involved project back to the main branch and re-installing the package. This is an all or nothing process and it will fail with no changes unless all the projects are currently on the work branch and clean or on the main branch (in any state).`,
+  },
   method     : 'put',
   parameters : []
 })

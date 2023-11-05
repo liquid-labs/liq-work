@@ -1,6 +1,12 @@
 import { doClose, getCloseEndpointParameters } from './_lib/close-lib'
 
-const { help, method, parameters } = getCloseEndpointParameters({ workDesc : 'named' })
+const { help, method, parameters } = getCloseEndpointParameters({
+  alternateTo: {
+    altId: '/work/close',
+    variation: 'explicitly name the unit of work'
+  },
+  workDesc : 'named' 
+})
 
 const path = ['work', ':workKey', 'close']
 

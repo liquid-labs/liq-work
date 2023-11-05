@@ -134,8 +134,9 @@ const doCleanWorkUnit = async({
   return statusReport
 }
 
-const getCleanEndpointParameters = ({ workDesc, includeAll = false }) => {
+const getCleanEndpointParameters = ({ alternateTo, workDesc, includeAll = false }) => {
   const help = {
+    alternateTo,
     name        : `Work clean (${workDesc})`,
     summary     : 'Cleans work branches and records.',
     description : `Cleans up the work branches and records associated the ${workDesc} unit of work. By default, the local copy of remote main branches will be updated in order to provide up-to-date information on the status in order to determine whether the work artifacts can be cleaned (removed). This can be supressed with the \`noFetch\` option.`

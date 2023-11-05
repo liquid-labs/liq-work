@@ -222,9 +222,10 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
   })
 }
 
-const getSubmitEndpointParams = ({ descIntro }) => {
+const getSubmitEndpointParams = ({ alternateTo, descIntro }) => {
   const endpointParams = {
     help : {
+      alternateTo,
       name        : 'Work submit.',
       summary     : 'Submits changes for review and merging.',
       description : `${descIntro} By default, any un-pushed local changes are push to the proper remote. Each PR will reference the associated issues and linked to the primary project's PR for closing when it is merged.

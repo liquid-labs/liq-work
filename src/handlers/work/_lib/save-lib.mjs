@@ -62,9 +62,10 @@ const doSave = async({
   httpSmartResponse({ msg : reporter.taskReport.join('\n'), req, res })
 }
 
-const getSaveEndpointParams = ({ descIntro }) => {
+const getSaveEndpointParams = ({ alternateTo, descIntro }) => {
   const endpointParams = {
     help : {
+      alternateTo,
       name        : 'Work save.',
       summary     : 'Commts and pushes work branch changes.',
       description : `${descIntro} By default, commits and pushes local changes. \`noBackup\` causes the process to commit, but not push. \`backupOnly\` causes the process to push without committing. If committing \`summary\` is required.`

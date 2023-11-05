@@ -25,7 +25,7 @@ Added projects '<em>${projects.join("<rst>', '<em>")}<rst>' to unit of work '<em
   })
 }
 
-const getAddProjectsEndpointParameters = ({ workDesc }) => {
+const getAddProjectsEndpointParameters = ({ alternateTo, workDesc }) => {
   const parameters = [
     {
       name         : 'projects',
@@ -48,6 +48,7 @@ const getAddProjectsEndpointParameters = ({ workDesc }) => {
 
   return {
     help : {
+      alternateTo,
       name        : 'Work projects add',
       summary     : `Add projects to the ${workDesc} unit of work.`,
       description : `Adds one or more projects to the ${workDesc} of work. By default, the local development copy of any project which is a dependency of another is linked the dependent project unless \`noLink\` is specified.`

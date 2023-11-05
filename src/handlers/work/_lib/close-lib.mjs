@@ -73,8 +73,9 @@ const doCloseWorkUnit = async({
   return statusReport
 }
 
-const getCloseEndpointParameters = ({ workDesc, includeAll = false }) => {
+const getCloseEndpointParameters = ({ alternateTo, workDesc, includeAll = false }) => {
   const help = {
+    alternateTo,
     name        : `Work close (${workDesc})`,
     summary     : 'Closes work branches and records.',
     description : `Closes an open unit of work, removing the branches and the local work records associated with the ${workDesc} unit of work and, by default, unassigns the current user from the associated issues. The 'noUnassign' parameter can be set 'true' to keep the assignment.`

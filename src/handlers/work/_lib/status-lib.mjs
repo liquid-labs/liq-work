@@ -32,8 +32,9 @@ const doStatus = async({ app, cache, reporter, req, res, workKey }) => {
   httpSmartResponse({ data : statusReport, msg, req, res })
 }
 
-const getStatusEndpointParameters = ({ workDesc }) => {
+const getStatusEndpointParameters = ({ alternateTo, workDesc }) => {
   const help = {
+    alternateTo,
     name        : 'Work status',
     summary     : 'Reports on the status of a unit of work.',
     description : `Checks the status of a unit of work branches, issues, and pull requests. By default, the local copy of remote main branches will be updated in order to provide up-to-date information on the status. This can be supressed with the \`noFetch\` option.

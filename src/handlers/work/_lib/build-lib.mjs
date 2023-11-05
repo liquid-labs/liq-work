@@ -23,8 +23,9 @@ const doBuild = async({ app, cache, reporter, req, res, workKey }) => {
   httpSmartResponse({ msg : `<bold>Built<rst> projects <em>${projects.join('<rst>, <em>')}<rst>.`, req, res })
 }
 
-const getBuildEndpointParams = ({ workDesc }) => ({
+const getBuildEndpointParams = ({ alternateTo, workDesc }) => ({
   help : {
+    alternateTo,
     name        : `Work build (${workDesc})`,
     summary     : 'Builds work involved projects.',
     description : `Builds one or more projects associated with the ${workDesc} unit of work.`

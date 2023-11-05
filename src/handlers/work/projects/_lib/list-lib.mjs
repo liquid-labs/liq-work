@@ -42,7 +42,7 @@ const doListProjects = async({ app, cache, reporter, req, res, workKey }) => {
   })
 }
 
-const getListProjectsEndpointParameters = ({ workDesc }) => {
+const getListProjectsEndpointParameters = ({ alternateTo, workDesc }) => {
   const parameters = [
     {
       name        : 'browseEach',
@@ -55,6 +55,7 @@ const getListProjectsEndpointParameters = ({ workDesc }) => {
 
   return {
     help : {
+      alternateTo,
       name        : 'Work projects list',
       summary     : `List the projects associated with the ${workDesc} unit of work.`,
       description : `List the projects associated with the ${workDesc} unit of work.`

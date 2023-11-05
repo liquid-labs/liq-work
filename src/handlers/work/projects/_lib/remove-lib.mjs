@@ -85,7 +85,7 @@ const doRemoveProjects = async({ app, cache, reporter, req, res, workKey }) => {
   })
 }
 
-const getRemoveProjectsEndpointParameters = ({ workDesc }) => {
+const getRemoveProjectsEndpointParameters = ({ alternateTo, workDesc }) => {
   const parameters = [
     {
       name        : 'allowUnclean',
@@ -113,6 +113,7 @@ const getRemoveProjectsEndpointParameters = ({ workDesc }) => {
 
   return {
     help : {
+      alternateTo,
       name        : 'Work projects remove',
       summary     : `Remove projects from the ${workDesc} unit of work.`,
       description : `Removes projects from the ${workDesc} unit of work. If the work branch is the current working branch for the repo, then it must be clean (unless \`allowUnclean\` is specified). If the work branch is present, it must have no un-merged changes (unless \`forgetChanges\` is specified). If the current repo branch is anything other than the work branch, then it is left in place.`

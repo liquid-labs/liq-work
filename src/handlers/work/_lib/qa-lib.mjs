@@ -37,8 +37,9 @@ const doQA = async({ app, cache, reporter, req, res, workKey }) => {
   httpSmartResponse({ msg, req, res })
 }
 
-const getQAEndpointParams = ({ workDesc }) => ({
+const getQAEndpointParams = ({ alternateTo, workDesc }) => ({
   help : {
+    alternateTo,
     name        : `Work qa (${workDesc})`,
     summary     : 'QAs work involved projects.',
     description : `QAs one or more projects associated with the ${workDesc} unit of work.`
