@@ -88,7 +88,7 @@ const getSaveEndpointParams = ({ alternateTo, descIntro }) => {
         optionsFunc  : async({ app, cache, lastOptionValue, req, workKey }) => {
           // use the current work directory to determine the workKey
           const currDir = req.get('X-CWD')
-          const projectName = (await getPackageJSON({ pkgDir: currDir })).name
+          const projectName = (await getPackageJSON({ pkgDir : currDir })).name
           const { projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectName)
           workKey = workKey || determineCurrentBranch({ projectPath })
 
@@ -183,7 +183,7 @@ const saveFiles = async({ app, backupOnly, description, files, noBackup, reporte
     if (f.indexOf(':') === -1) {
       if (impProj === undefined) {
         const currDir = req.get('X-CWD')
-        npmName = (await getPackageJSON({ pkgDir: currDir })).name;
+        npmName = (await getPackageJSON({ pkgDir : currDir })).name;
         ({ projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(npmName))
       }
 

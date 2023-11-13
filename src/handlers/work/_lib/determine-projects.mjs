@@ -19,7 +19,7 @@ const determineProjects = async({ all, cliEndpoint, projects, reporter, req, wor
   }
   else if (projects === undefined) {
     const currDir = req.get('X-CWD')
-    const currProject = (await getPackageJSON({ pkgDir: currDir })).name
+    const currProject = (await getPackageJSON({ pkgDir : currDir })).name
     projects = [currProject]
   }
   else { // else projects is defined, let's make sure they're valid

@@ -39,7 +39,7 @@ const func = ({ app, cache, reporter }) => async(req, res) => {
   let { assignee, comment, issues, noAutoAssign = false, projects } = req.vars
   // First, let's process projects. If nothing specified, assume the current, implied project.
   if (projects === undefined) {
-    const currPkgJSON = await getPackageJSON({ pkgDir: req.get('X-CWD') })
+    const currPkgJSON = await getPackageJSON({ pkgDir : req.get('X-CWD') })
     const currProject = currPkgJSON.name
     projects = [currProject]
   }
