@@ -314,15 +314,15 @@ const checkoutWorkBranch = async({
 
   const refSpec = `${remote} ${workBranch}`
   if (hasRemoteBranch === false && hasLocalBranch === false) {
-    reporter.push(`Creating and pusing '${workBranch}...`)
+    reporter.push(`Creating and pusing '${workBranch}'...`)
     tryExec(`cd '${projectPath}' && git checkout -b ${workBranch} && git push --set-upstream ${refSpec}`)
   }
-  else if (hasRemoteBranch === true) {
-    reporter.push(`Pulling remote branch ${workBranch}...`)
-    tryExec(`cd '${projectPath}' && git pull --set-upstream ${refSpec} && git checkout -b ${workBranch} --track ${remote}/${workBranch}`)
+  else if (hasRemoteBranch === true && hasLocalBranch === false) {
+    reporter.push(`Pulling '${workBranch}' from remote...`)
+    tryExec(`cd '${projectPath}' && git pull --set-upstream ${refSpec}`)
   }
-  else if (hasLocalBranch === true) {
-    reporter.push(`Pushing local branch ${workBranch}...`)
+  else if (hasRemoteBranch === false && hasLocalBranch === true) {
+    reporter.push(`Pushing '${workBranch}' to remote...`)
     tryExec(`cd '${projectPath}' && git push --set-upstream ${refSpec}`)
   }
   else {

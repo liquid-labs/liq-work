@@ -11,7 +11,7 @@ import {
 } from '@liquid-labs/git-toolkit'
 import { checkGitHubSSHAccess } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
-import { getImpliedPackageJSON } from '@liquid-labs/liq-projects-lib'
+import { getPackageJSON } from '@liquid-labs/npm-toolkit'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { getCommonImpliedParameters } from './common-implied-parameters'
@@ -87,7 +87,8 @@ const getSaveEndpointParams = ({ alternateTo, descIntro }) => {
         description  : "Rather than saving everything, save only the indicated files. Files are specified in the form '[org/project:]rel/path/to/file'. When the project designation is omitted, the current project is assumed.",
         optionsFunc  : async({ app, cache, lastOptionValue, req, workKey }) => {
           // use the current work directory to determine the workKey
-          const projectName = (await getImpliedPackageJSON({ callDesc : 'work save - options', req })).name
+          const currDir = req.get('X-CWD')
+          const projectName = (await getPackageJSON({ pkgDir: currDir })).name
           const { projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectName)
           workKey = workKey || determineCurrentBranch({ projectPath })
 
@@ -181,7 +182,8 @@ const saveFiles = async({ app, backupOnly, description, files, noBackup, reporte
   files = await Promise.all(files.map(async(f) => {
     if (f.indexOf(':') === -1) {
       if (impProj === undefined) {
-        npmName = (await getImpliedPackageJSON({ callDesc : 'work save', req })).name;
+        const currDir = req.get('X-CWD')
+        npmName = (await getPackageJSON({ pkgDir: currDir })).name;
         ({ projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(npmName))
       }
 

@@ -7,7 +7,7 @@ import {
   verifyIssuesAvailable
 } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
-import { getImpliedPackageJSON } from '@liquid-labs/liq-projects-lib'
+import { getPackageJSON } from '@liquid-labs/npm-toolkit'
 
 import { commonAssignParameters } from './_lib/common-assign-parameters'
 import { commonAddProjectParameters } from './_lib/common-add-project-parameters'
@@ -39,8 +39,7 @@ const func = ({ app, cache, reporter }) => async(req, res) => {
   let { assignee, comment, issues, noAutoAssign = false, projects } = req.vars
   // First, let's process projects. If nothing specified, assume the current, implied project.
   if (projects === undefined) {
-    // const currProject = getImpliedPackageJSON({ callDesc: 'work start', req}).name
-    const currPkgJSON = await getImpliedPackageJSON({ callDesc : 'work start', req })
+    const currPkgJSON = await getPackageJSON({ pkgDir: req.get('X-CWD') })
     const currProject = currPkgJSON.name
     projects = [currProject]
   }
