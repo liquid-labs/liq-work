@@ -4,7 +4,7 @@ import createError from 'http-errors'
 
 import { determineCurrentBranch, determineOriginAndMain, hasBranch, verifyClean } from '@liquid-labs/git-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
-import { LIQ_PLAYGROUND } from '@liquid-labs/liq-defaults'
+import { PLUGABLE_PLAYGROUND } from '@liquid-labs/plugable-defaults'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { requireImpliedBranch } from '../../_lib/require-implied-work'
@@ -27,7 +27,7 @@ const doRemoveProjects = async({ app, cache, reporter, req, res, workKey }) => {
   for (const projectFQN of projects) {
     const [org, project] = projectFQN.split('/')
 
-    const projectPath = fsPath.join(LIQ_PLAYGROUND(), org, project)
+    const projectPath = fsPath.join(PLUGABLE_PLAYGROUND(), org, project)
 
     let hasWorkBranch
     let switchToMain = true

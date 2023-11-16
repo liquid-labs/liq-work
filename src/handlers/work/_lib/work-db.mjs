@@ -11,8 +11,8 @@ import {
 } from '@liquid-labs/git-toolkit'
 import { determineGitHubLogin, getGitHubOrgAndProjectBasename } from '@liquid-labs/github-toolkit'
 import { crossLinkDevProjects } from '@liquid-labs/liq-projects-lib'
-import { LIQ_PLAYGROUND } from '@liquid-labs/liq-defaults'
 import { Octocache } from '@liquid-labs/octocache'
+import { PLUGABLE_PLAYGROUND } from '@liquid-labs/plugable-defaults'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { WORKSPACE } from './constants'
@@ -26,7 +26,7 @@ const WorkDB = class WorkDB {
 
   constructor({ app, authToken, reporter }) {
     this.#dbFilePath = app.ext.constants.WORK_DB_PATH
-    this.#playgroundPath = LIQ_PLAYGROUND()
+    this.#playgroundPath = PLUGABLE_PLAYGROUND()
     this.#authToken = authToken // TODO: for security, do wo want to take this on a call by call basis to reduce the numbers of copies? Or do they all point to the same stirng? I think that may bet the case but I don't remember for sure.
     this.#data = readFJSON(this.#dbFilePath, { createOnNone : {} })
     this.#reporter = reporter
