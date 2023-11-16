@@ -60,7 +60,6 @@ const doCloseWorkUnit = async({
     workUnit
   })
 
-  console.log('statusReport:', statusReport) // DEBUG
   deleteWorkBranches({ app, noFetch : true, statusReport, workKey, reporter })
 
   if (noUnassign !== true) {
