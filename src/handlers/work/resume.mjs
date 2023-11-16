@@ -31,7 +31,7 @@ const func = ({ app, cache, reporter }) => async(req, res) => {
   const projectsSkipped = []
   for (const { name: projectFQN } of workUnit.projects) {
     const [org, project] = projectFQN.split('/')
-    const projectPath = fsPath.join(PLAYGROUND_PLAYGROUND(), org, project)
+    const projectPath = fsPath.join(PLUGABLE_PLAYGROUND(), org, project)
 
     const currBranch = await determineCurrentBranch({ projectPath, reporter })
 
