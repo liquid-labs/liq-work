@@ -18,7 +18,7 @@ const answerSetToMd = async({
 
   const integrationUser = await app.ext.integrations.callHook({
     providerFor  : 'pull request',
-    providerArgs : { pkgJSON: packageJSON },
+    providerArgs : { pkgJSON : packageJSON },
     hook         : 'getCurrentIntegrationUser',
     hookArgs     : { app }
   })
@@ -27,9 +27,9 @@ const answerSetToMd = async({
   if (noQA !== true) {
     const qaFileLinkIndex = await app.ext.integrations.callHook({
       providerFor  : 'pull request',
-      providerArgs : { pkgJSON: packageJSON },
+      providerArgs : { pkgJSON : packageJSON },
       hook         : 'getQALinkFileIndex',
-      hookArgs     : { gitHubOrg, pkgJSON: packageJSON, projectPath, reporter }
+      hookArgs     : { gitHubOrg, pkgJSON : packageJSON, projectPath, reporter }
     })
 
     qaLinksMd = Object.keys(qaFileLinkIndex).reduce((acc, key) => {
