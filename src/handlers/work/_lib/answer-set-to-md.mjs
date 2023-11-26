@@ -50,7 +50,7 @@ const answerSetToMd = async({
       ? `resolve ${issueRef}`
       : `[${issueRef}](${await app.ext.integrations.callHook({
         providerFor  : 'tickets',
-        providerArgs : { pkgJSON },
+        providerArgs : { pkgJSON: packageJSON },
         hook         : 'getIssueURL',
         hookArgs     : { gitHubOrg, project : p, ref : n }
       })})`
