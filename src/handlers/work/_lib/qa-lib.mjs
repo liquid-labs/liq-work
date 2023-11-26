@@ -20,7 +20,7 @@ const doQA = async({ app, cache, reporter, req, res, workKey }) => {
   let msg = ''
 
   for (const projectFQN of projects) {
-    const { projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
+    const { projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
 
     tryExec(`cd '${projectPath}' && npm run qa`, { noThrow : true })
 

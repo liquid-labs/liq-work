@@ -101,7 +101,7 @@ const doCleanWorkUnit = async({
   })
 
   if (deleteBranches === true && !Object.values(statusReport.issues).some((i) => i.state !== 'closed')) {
-    deleteWorkBranches({ app, noFetch, statusReport, workKey, reporter })
+    await deleteWorkBranches({ app, noFetch, statusReport, workKey, reporter })
   }
   else if (deleteBranches === true) {
     reporter.push('Skipping consideration of branch deletions due to open issues.')

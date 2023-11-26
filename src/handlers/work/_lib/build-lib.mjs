@@ -15,7 +15,7 @@ const doBuild = async({ app, cache, reporter, req, res, workKey }) => {
     await determineProjects({ all, cliEndpoint : 'work build', projects, reporter, req, workDB, workKey }))
 
   for (const projectFQN of projects) {
-    const { projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
+    const { projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
 
     tryExec(`cd '${projectPath}' && npm run build`)
   }

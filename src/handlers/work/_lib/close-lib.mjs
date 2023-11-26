@@ -60,7 +60,7 @@ const doCloseWorkUnit = async({
     workUnit
   })
 
-  deleteWorkBranches({ app, noFetch : true, statusReport, workKey, reporter })
+  await deleteWorkBranches({ app, noFetch : true, statusReport, workKey, reporter })
 
   if (noUnassign !== true) {
     const issues = workDB.getIssueKeys(workKey)

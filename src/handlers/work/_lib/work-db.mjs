@@ -69,8 +69,8 @@ const WorkDB = class WorkDB {
 
       const octocache = new Octocache({ authToken : this.#authToken })
       for (const project of projects) {
-        const { pkgJSON } = app.ext._liqProjects.playgroundMonitor.getProjectData(project)
-        const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON : pkgJSON })
+        const { packageJSON } = await app.ext._liqProjects.playgroundMonitor.getProjectData(project)
+        const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON })
         const projectData = await octocache.request(`GET /repos/${ghOrg}/${projectBasename}`)
         workData.projects.push({
           name    : project,
@@ -87,7 +87,7 @@ const WorkDB = class WorkDB {
       // that's all projects across all units of work
       const allProjects = Object.keys(Object.values(this.#data)
         .reduce((acc, wd) => { wd.projects.forEach(({ name }) => { acc[name] = true }); return acc }, {}))
-      crossLinkDevProjects({ app, projects : allProjects, reporter })
+      await crossLinkDevProjects({ app, projects : allProjects, reporter })
     }
 
     return structuredClone(workData)
@@ -142,8 +142,8 @@ const WorkDB = class WorkDB {
     for (const project of projects) {
       reporter.push(`Processing work branch for <em>${project}<rst>...`)
 
-      const { pkgJSON, projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(project)
-      const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON : pkgJSON })
+      const { packageJSON, projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(project)
+      const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON })
 
       let repoData
       const ghProject = ghOrg + '/' + projectBasename

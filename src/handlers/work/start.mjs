@@ -26,7 +26,7 @@ const parameters = [
     name         : 'projects',
     isMultivalue : true,
     description  : 'The project(s) to include in the new unit of work. If none are specified, then will guess the current implied project based on the client working directory.',
-    optionsFunc  : ({ app }) => app.ext._liqProjects.playgroundMonitor.listProjects()
+    optionsFunc  : async({ app }) => await app.ext._liqProjects.playgroundMonitor.listProjects()
   },
   ...commonAddProjectParameters(),
   ...commonAssignParameters()
@@ -45,20 +45,20 @@ const func = ({ app, cache, reporter }) => async(req, res) => {
   }
   // Now, make sure all project specs are valid.
   for (const project of projects) {
-    if (app.ext._liqProjects.playgroundMonitor.getProjectData(project) === undefined) {
+    if (await app.ext._liqProjects.playgroundMonitor.getProjectData(project) === undefined) {
       throw createError.BadRequest(`No such local project '${project}'. Do you need to import it?`)
     }
   }
 
   // Normalize issues as '<org>/<project>/<issue number>'
-  issues = issues.map((i) => {
+  issues = await Promise.all(issues.map(async(i) => {
     if (i.match(/^\d+$/)) {
-      const { pkgJSON } = app.ext._liqProjects.playgroundMonitor.getProjectData(projects[0])
-      const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON : pkgJSON })
+      const { packageJSON } = await app.ext._liqProjects.playgroundMonitor.getProjectData(projects[0])
+      const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON })
       return ghOrg + '/' + projectBasename + '/' + i
     }
     return i
-  })
+  }))
 
   const credDB = app.ext.credentialsDB
   const authToken = await credDB.getToken('GITHUB_API')

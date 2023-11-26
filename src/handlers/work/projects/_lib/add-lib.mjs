@@ -39,7 +39,7 @@ const getAddProjectsEndpointParameters = ({ alternateTo, workDesc }) => {
         const workDB = new WorkDB({ app, authToken })
         const currProjects = workDB.getData(workKey).projects?.map((p) => p.name)
 
-        return app.ext._liqProjects.playgroundMonitor.listProjects().filter((p) => !currProjects.includes(p))
+        return await app.ext._liqProjects.playgroundMonitor.listProjects().filter((p) => !currProjects.includes(p))
       }
     },
     ...commonAddProjectParameters()

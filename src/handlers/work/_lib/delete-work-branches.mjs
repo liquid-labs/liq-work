@@ -1,12 +1,12 @@
 import { determineCurrentBranch, determineOriginAndMain } from '@liquid-labs/git-toolkit'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
-const deleteWorkBranches = ({ app, noFetch, statusReport, workKey, reporter }) => {
+const deleteWorkBranches = async({ app, noFetch, statusReport, workKey, reporter }) => {
   for (const [projectFQN, projectStatus] of Object.entries(statusReport.projects)) {
     reporter.push(`Considering deleting work branch in project ${projectFQN}...`)
     if (projectStatus.workBranch?.localBranchFound === true
         && projectStatus.localChanges?.mergedToRemoteMain === true) {
-      const { projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
+      const { projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
       const currBranch = determineCurrentBranch({ projectPath })
       if (currBranch === workKey) {
         const [, main] = determineOriginAndMain({ noFetch, projectPath, reporter })
