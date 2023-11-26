@@ -63,7 +63,7 @@ const generateProjectsReport = async({
 
     const projectStatus = {}
     report.projects[projectFQN] = projectStatus
-    const { projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
+    const { projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
 
     const [origin, main] = determineOriginAndMain({ noFetch, projectPath, reporter })
     let remote
@@ -137,8 +137,8 @@ const generateProjectsReport = async({
     // analyze PRs
     projectStatus.pullRequests = []
     reporter.push(`Retrieving pull requests associated with head '${workKey}'...`)
-    const { pkgJSON } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
-    const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON : pkgJSON })
+    const { packageJSON } = await app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
+    const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON })
     let reportPRs =
       await octocache.paginate(`GET /repos/${ghOrg}/${projectBasename}/pulls`, { head : workKey, state : 'all' })
     // As of 2023-03-08, the 'head' argument requires (for cross-repo merges) the name of the individual that

@@ -89,7 +89,7 @@ const getSaveEndpointParams = ({ alternateTo, descIntro }) => {
           // use the current work directory to determine the workKey
           const currDir = req.get('X-CWD')
           const projectName = (await getPackageJSON({ pkgDir : currDir })).name
-          const { projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectName)
+          const { projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(projectName)
           workKey = workKey || determineCurrentBranch({ projectPath })
 
           const workDB = new WorkDB({ app, cache })
@@ -99,7 +99,7 @@ const getSaveEndpointParams = ({ alternateTo, descIntro }) => {
             .filter((p) => p !== projectName + ':')
 
           const fileOptions = async({ relPath, partial, projectName, terminal }) => {
-            const { projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectName)
+            const { projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(projectName)
             const pathBits = [projectPath]
             if (relPath !== undefined) {
               pathBits.push(relPath)
@@ -192,7 +192,7 @@ const saveFiles = async({ app, backupOnly, description, files, noBackup, reporte
     else {
       const [projectFQN, relFile] = f.split(':')
       npmName = projectFQN;
-      ({ projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(npmName))
+      ({ projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(npmName))
       return [npmName, relFile, projectPath]
     }
   }))
@@ -247,7 +247,7 @@ const saveProjects = async({
     await determineProjects({ all, cliEndpoint : 'work save', projects, reporter, req, workDB, workKey }))
 
   for (const project of projects) {
-    const { projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(project)
+    const { projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(project)
 
     const currBranch = determineCurrentBranch({ projectPath, reporter })
 

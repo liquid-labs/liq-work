@@ -7,7 +7,7 @@ const answerSetToMd = async({
   closeTarget,
   gitHubOrg,
   noQA,
-  pkgJSON,
+  packageJSON,
   projectFQN,
   projectPath,
   projects,
@@ -18,7 +18,7 @@ const answerSetToMd = async({
 
   const integrationUser = await app.ext.integrations.callHook({
     providerFor  : 'pull request',
-    providerArgs : { pkgJSON },
+    providerArgs : { pkgJSON : packageJSON },
     hook         : 'getCurrentIntegrationUser',
     hookArgs     : { app }
   })
@@ -27,9 +27,9 @@ const answerSetToMd = async({
   if (noQA !== true) {
     const qaFileLinkIndex = await app.ext.integrations.callHook({
       providerFor  : 'pull request',
-      providerArgs : { pkgJSON },
+      providerArgs : { pkgJSON : packageJSON },
       hook         : 'getQALinkFileIndex',
-      hookArgs     : { gitHubOrg, pkgJSON, projectPath, reporter }
+      hookArgs     : { gitHubOrg, pkgJSON : packageJSON, projectPath, reporter }
     })
 
     qaLinksMd = Object.keys(qaFileLinkIndex).reduce((acc, key) => {
@@ -50,7 +50,7 @@ const answerSetToMd = async({
       ? `resolve ${issueRef}`
       : `[${issueRef}](${await app.ext.integrations.callHook({
         providerFor  : 'tickets',
-        providerArgs : { pkgJSON },
+        providerArgs : { pkgJSON : packageJSON },
         hook         : 'getIssueURL',
         hookArgs     : { gitHubOrg, project : p, ref : n }
       })})`
@@ -60,7 +60,7 @@ const answerSetToMd = async({
     const otherProjects = projects.filter((p) => p.name !== projectFQN)
     md += '\n\nRelated projects: '
     md += (await Promise.all(otherProjects.map(async({ name: otherProjFQN }) => {
-      const { pkgJSON: otherPkgJSON } = app.ext._liqProjects.playgroundMonitor.getProjectData(otherProjFQN)
+      const { packageJSON: otherPkgJSON } = await app.ext._liqProjects.playgroundMonitor.getProjectData(otherProjFQN)
       const { org: otherGitHubOrg } = getGitHubOrgAndProjectBasename({ pkgJSON : otherPkgJSON })
 
       const [, otherProject] = otherProjFQN.split('/')

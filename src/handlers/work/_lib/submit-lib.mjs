@@ -51,7 +51,7 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
   // first, we check readiness
   for (const { name: projectFQN, private: isPrivate } of projects) {
     reporter.push(`Checking status of <em>${projectFQN}<rst>...`)
-    const { projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
+    const { projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
 
     const remote = setRemote({ isPrivate, projectPath })
 
@@ -75,8 +75,8 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
   if (answers === undefined) {
     // we iterate over the projects
     const interogationBundles = await Promise.all(projects.map(async({ name: projectFQN }) => {
-      const { pkgJSON, projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
-      const { name: projectName } = pkgJSON
+      const { packageJSON, projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
+      const { name: projectName } = packageJSON
 
       const supportsControls = app.ext.integrations.hasHook({
         providerFor : 'controls',
@@ -119,9 +119,9 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
         else {
           const qaFileLinkIndex = await app.ext.integrations.callHook({
             providerFor  : 'pull request',
-            providerArgs : { pkgJSON },
+            providerArgs : { pkgJSON : packageJSON },
             hook         : 'getQALinkFileIndex',
-            hookArgs     : { app, pkgJSON, projectPath, reporter }
+            hookArgs     : { app, pkgJSON : packageJSON, projectPath, reporter }
           })
 
           for (const qaFile of Object.keys(qaFileLinkIndex)) {
@@ -158,8 +158,8 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
 
   const prURLs = []
   for (const { name: projectFQN, private: isPrivate } of projects) {
-    const { pkgJSON, projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
-    const { org: gitHubOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON : pkgJSON })
+    const { packageJSON, projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
+    const { org: gitHubOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON })
 
     const qaFiles = await saveQAFiles({ projectPath, reporter })
 
@@ -171,7 +171,7 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
       closeTarget,
       gitHubOrg,
       noQA,
-      pkgJSON,
+      packageJSON,
       projectFQN,
       projectPath,
       projects,
@@ -186,9 +186,11 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
     const remote = setRemote({ isPrivate, projectPath })
     tryExec(`cd '${projectPath}' && git push ${remote} ${workKey}`)
 
+    console.log('packageJSON:', packageJSON) // DEBUG
+
     prURLs.push(...await app.ext.integrations.callHook({
       providerFor  : 'pull request',
-      providerArgs : { pkgJSON },
+      providerArgs : { pkgJSON : packageJSON },
       hook         : 'createOrUpdatePullRequest',
       hookArgs     : {
         app,
