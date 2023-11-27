@@ -1,4 +1,4 @@
-import { claimIssues, getGitHubOrgAndProjectBasename, verifyIssuesAvailable } from '@liquid-labs/github-toolkit'
+import { claimIssues, getGitHubOrgBasenameAndVersion, verifyIssuesAvailable } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { Octocache } from '@liquid-labs/octocache'
 
@@ -20,7 +20,7 @@ const doAddIssues = async({ app, cache, reporter, req, res, workKey }) => {
   const primaryProject = workData.projects[0].name
   const { packageJSON } = await app.ext._liqProjects.playgroundMonitor.getProjectData(primaryProject)
 
-  const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON })
+  const { org: ghOrg, projectBasename } = getGitHubOrgBasenameAndVersion({ packageJSON })
   issues = issues.map((i) => i.match(/^\d+$/) ? ghOrg + '/' + projectBasename + '/' + i : i)
 
   await verifyIssuesAvailable({ authToken, issues, noAutoAssign, notClosed : true, reporter })

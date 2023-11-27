@@ -9,7 +9,7 @@ import {
   workBranchName,
   verifyIsOnBranch
 } from '@liquid-labs/git-toolkit'
-import { determineGitHubLogin, getGitHubOrgAndProjectBasename } from '@liquid-labs/github-toolkit'
+import { determineGitHubLogin, getGitHubOrgBasenameAndVersion } from '@liquid-labs/github-toolkit'
 import { crossLinkDevProjects } from '@liquid-labs/liq-projects-lib'
 import { Octocache } from '@liquid-labs/octocache'
 import { PLUGABLE_PLAYGROUND } from '@liquid-labs/plugable-defaults'
@@ -70,7 +70,7 @@ const WorkDB = class WorkDB {
       const octocache = new Octocache({ authToken : this.#authToken })
       for (const project of projects) {
         const { packageJSON } = await app.ext._liqProjects.playgroundMonitor.getProjectData(project)
-        const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON })
+        const { org: ghOrg, projectBasename } = getGitHubOrgBasenameAndVersion({ packageJSON })
         const projectData = await octocache.request(`GET /repos/${ghOrg}/${projectBasename}`)
         workData.projects.push({
           name    : project,
@@ -143,7 +143,7 @@ const WorkDB = class WorkDB {
       reporter.push(`Processing work branch for <em>${project}<rst>...`)
 
       const { packageJSON, projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(project)
-      const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON })
+      const { org: ghOrg, projectBasename } = getGitHubOrgBasenameAndVersion({ packageJSON })
 
       let repoData
       const ghProject = ghOrg + '/' + projectBasename
