@@ -4,7 +4,7 @@ import * as fsPath from 'node:path'
 import createError from 'http-errors'
 
 import { determineOriginAndMain, verifyBranchInSync, verifyClean } from '@liquid-labs/git-toolkit'
-import { getGitHubOrgAndProjectBasename } from '@liquid-labs/github-toolkit'
+import { getGitHubOrgBasenameAndVersion } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { cleanupQAFiles, runQA, saveQAFiles } from '@liquid-labs/liq-qa-lib'
 import { tryExec } from '@liquid-labs/shell-toolkit'
@@ -159,7 +159,7 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
   const prURLs = []
   for (const { name: projectFQN, private: isPrivate } of projects) {
     const { packageJSON, projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
-    const { org: gitHubOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON })
+    const { org: gitHubOrg, projectBasename } = getGitHubOrgBasenameAndVersion({ packageJSON })
 
     const qaFiles = await saveQAFiles({ projectPath, reporter })
 

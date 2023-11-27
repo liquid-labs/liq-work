@@ -4,7 +4,7 @@ import {
   determineOriginAndMain,
   hasBranch
 } from '@liquid-labs/git-toolkit'
-import { getGitHubOrgAndProjectBasename } from '@liquid-labs/github-toolkit'
+import { getGitHubOrgBasenameAndVersion } from '@liquid-labs/github-toolkit'
 import { tryExec } from '@liquid-labs/shell-toolkit'
 
 import { WORKSPACE } from './constants'
@@ -138,7 +138,7 @@ const generateProjectsReport = async({
     projectStatus.pullRequests = []
     reporter.push(`Retrieving pull requests associated with head '${workKey}'...`)
     const { packageJSON } = await app.ext._liqProjects.playgroundMonitor.getProjectData(projectFQN)
-    const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON })
+    const { org: ghOrg, projectBasename } = getGitHubOrgBasenameAndVersion({ packageJSON })
     let reportPRs =
       await octocache.paginate(`GET /repos/${ghOrg}/${projectBasename}/pulls`, { head : workKey, state : 'all' })
     // As of 2023-03-08, the 'head' argument requires (for cross-repo merges) the name of the individual that
