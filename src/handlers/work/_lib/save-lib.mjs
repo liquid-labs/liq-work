@@ -184,7 +184,7 @@ const saveFiles = async({ app, backupOnly, description, files, noBackup, reporte
       if (impProj === undefined) {
         const currDir = req.get('X-CWD')
         npmName = (await getPackageJSON({ pkgDir : currDir })).name;
-        ({ projectPath } = app.ext._liqProjects.playgroundMonitor.getProjectData(npmName))
+        ({ projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(npmName))
       }
 
       return [npmName, f, projectPath]

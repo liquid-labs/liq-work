@@ -2,6 +2,7 @@ import createError from 'http-errors'
 
 import {
   claimIssues,
+  createIssue,
   determineGitHubLogin,
   getGitHubOrgAndProjectBasename,
   verifyIssuesAvailable
@@ -23,6 +24,27 @@ const method = 'post'
 const path = ['work', 'start']
 const parameters = [
   {
+    name        : 'issueBug',
+    isBoolean   : true,
+    description : "Labels the created issue as a 'bug' rather than the default 'enhancement'. Only valid when 'createIssues' is set."
+  },
+  {
+    name        : 'issueDeliverables',
+    description : "A list of newline or a double semi-colon (';;') seperated deliverables items. Only valid when 'createIssue' is set."
+  },
+  {
+    name        : 'issueNotes',
+    description : "Notes to include in the issue body. Only valid when 'createIssue' is set."
+  },
+  {
+    name        : 'issueOverview',
+    description : "The overview text to use when creating an issue. Only valid if 'createIssue' is set."
+  },
+  {
+    name        : 'issueTitle',
+    description : "Creates an issue with the given title. Requires 'issueOverview' and 'issueDeliverables' also be set."
+  },
+  {
     name         : 'projects',
     isMultivalue : true,
     description  : 'The project(s) to include in the new unit of work. If none are specified, then will guess the current implied project based on the client working directory.',
@@ -36,7 +58,30 @@ Object.freeze(parameters)
 const func = ({ app, cache, reporter }) => async(req, res) => {
   reporter = reporter.isolate()
 
-  let { assignee, comment, issues, noAutoAssign = false, projects } = req.vars
+  const {
+    assignee,
+    comment,
+    issueBug,
+    issueDeliverables,
+    issueNotes,
+    issueOverview,
+    issueTitle,
+    noAutoAssign = false
+  } = req.vars
+  let { issues = [], projects } = req.vars
+
+  if (issues.length === 0 && issueTitle === undefined) {
+    throw createError.BadRequest("Must provides 'issues' or create an issue with 'issueTitle', etc.")
+  }
+
+  if (issueTitle !== undefined && (issueDeliverables === undefined || issueOverview === undefined)) {
+    throw createError.BadRequest("Parameters 'issueOverview' and 'issueDeliverables' must be provided when 'issueTitle' is set.")
+  }
+  else if (issueTitle === undefined
+    && (issueBug !== undefined || issueDeliverables !== undefined || issueOverview !== undefined || issueNotes !== undefined)) {
+    throw createError.BadRequest("Parameters 'issueBug', 'issueOverview', 'issueDeliverables', and 'issueNotes' are only valid when 'issueTitle' is set.")
+  }
+
   // First, let's process projects. If nothing specified, assume the current, implied project.
   if (projects === undefined) {
     const currPkgJSON = await getPackageJSON({ pkgDir : req.get('X-CWD') })
@@ -50,18 +95,53 @@ const func = ({ app, cache, reporter }) => async(req, res) => {
     }
   }
 
+  // technically, we dont't always need this, but we usually do; this is the data for the 'primary' project
+  const { packageJSON } = await app.ext._liqProjects.playgroundMonitor.getProjectData(projects[0])
+  const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON })
+
+  const credDB = app.ext.credentialsDB
+  const authToken = await credDB.getToken('GITHUB_API')
+
+  if (issueTitle !== undefined) {
+    const labels = []
+    if (issueBug === true) {
+      labels.push('bug')
+    }
+    else {
+      labels.push('enhancement')
+    }
+
+    const deliverables = issueDeliverables.split(/(?:\n|;;)/)
+    const deliverablesText = '- [ ] ' + deliverables.join('\n- [ ] ')
+
+    let issueBody = `## Overview
+${issueOverview}
+
+## Deliverables
+
+${deliverablesText}`
+
+    if (issueNotes !== undefined) {
+      issueBody += `
+
+## Notes
+
+${issueNotes}`
+    } // if (notes)
+
+    const projectFQN = ghOrg + '/' + projectBasename
+
+    const { number } = await createIssue({ authToken, projectFQN, title : issueTitle, body : issueBody, labels, reporter })
+    issues.unshift(number + '')
+  }// if (createIssue)
+
   // Normalize issues as '<org>/<project>/<issue number>'
   issues = await Promise.all(issues.map(async(i) => {
     if (i.match(/^\d+$/)) {
-      const { packageJSON } = await app.ext._liqProjects.playgroundMonitor.getProjectData(projects[0])
-      const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON })
       return ghOrg + '/' + projectBasename + '/' + i
     }
     return i
   }))
-
-  const credDB = app.ext.credentialsDB
-  const authToken = await credDB.getToken('GITHUB_API')
 
   const githubLogin = (await determineGitHubLogin({ authToken })).login
   // TODO: this should be an integration hook point
