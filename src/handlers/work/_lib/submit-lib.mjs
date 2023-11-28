@@ -186,8 +186,6 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
     const remote = setRemote({ isPrivate, projectPath })
     tryExec(`cd '${projectPath}' && git push ${remote} ${workKey}`)
 
-    console.log('packageJSON:', packageJSON) // DEBUG
-
     prURLs.push(...await app.ext.integrations.callHook({
       providerFor  : 'pull request',
       providerArgs : { pkgJSON : packageJSON },
