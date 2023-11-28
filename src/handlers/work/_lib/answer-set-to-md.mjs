@@ -1,4 +1,4 @@
-import { getGitHubOrgBasenameAndVersion } from '@liquid-labs/github-toolkit'
+import { getGitHubOrgAndProjectBasename } from '@liquid-labs/github-toolkit'
 
 const answerSetToMd = async({
   app,
@@ -61,7 +61,7 @@ const answerSetToMd = async({
     md += '\n\nRelated projects: '
     md += (await Promise.all(otherProjects.map(async({ name: otherProjFQN }) => {
       const { packageJSON: otherPkgJSON } = await app.ext._liqProjects.playgroundMonitor.getProjectData(otherProjFQN)
-      const { org: otherGitHubOrg } = getGitHubOrgBasenameAndVersion({ pkgJSON : otherPkgJSON })
+      const { org: otherGitHubOrg } = getGitHubOrgAndProjectBasename({ pkgJSON : otherPkgJSON })
 
       const [, otherProject] = otherProjFQN.split('/')
       const projectURL = await app.ext.integrations.callHook({
