@@ -73,46 +73,26 @@ const doStart = async({
       labels.push('enhancement')
     }
 
-    const deliverables = issueDeliverables.split(/(?:\n|;;)/)
-    const deliverablesText = '- [ ] ' + deliverables.join('\n- [ ] ')
+    // transform issueDeliverables into final form
+    if (issueDeliverables !== undefined) {
+      const deliverables = issueDeliverables.split(/(?:\n|;;)/)
+      issueDeliverables = '- [ ] ' + deliverables.join('\n- [ ] ')
+    }
 
-    let issueBody = ''
+    let issueBody = '';
     // sections
-    [
-      ['Overview', issueOverview],
-      ['Deliverables', issueDeliverables],
-      ['Notes', issueNotes]
-    ].forEach(([sectionName, sectionContent], i, array) => {
-      if (sectionContent) {
-        issueBody += `## ${sectionName}
+    [['Overview', issueOverview], ['Deliverables', issueDeliverables], ['Notes', issueNotes]]
+      .forEach(([sectionName, sectionContent], i, array) => {
+        if (sectionContent) {
+          issueBody += `## ${sectionName}
 
 ${sectionContent}
 `
-        if (array[i + 1]?.[1] !== undefined) {
-          issueBody += "\n"
+          if (array[i + 1]?.[1] !== undefined) {
+            issueBody += '\n'
+          }
         }
-      }
-    })
-
-    if (issueOverview !== undefined) {
-      issueBody += `## Overview
-
-${issueOverview}
-`
-    if (issueDeliverables !== undefined) {
-      issueBody += `## Deliverables
-
-${deliverablesText}
-`
-    }
-
-    if (issueNotes !== undefined) {
-      issueBody += `
-
-## Notes
-
-${issueNotes}`
-    } // if (notes)
+      })
 
     const projectFQN = ghOrg + '/' + projectBasename
 
@@ -120,7 +100,7 @@ ${issueNotes}`
       await createIssue({ authToken, projectFQN, title : issueTitle, body : issueBody, labels, reporter })
     issues.unshift(number + '')
     issueURL = htmlURL
-  }// if (createIssue)
+  }// if issueTitle
 
   // Normalize issues as '<org>/<project>/<issue number>'
   issues = await Promise.all(issues.map(async(i) => {
