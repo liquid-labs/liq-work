@@ -9,6 +9,7 @@ import {
 } from '@liquid-labs/github-toolkit'
 import { httpSmartResponse } from '@liquid-labs/http-smart-response'
 import { getPackageJSON } from '@liquid-labs/npm-toolkit'
+import { tryExecAsync } from '@liquid-labs/shell-toolkit'
 
 import { commonAssignParameters } from './common-assign-parameters'
 import { commonAddProjectParameters } from './common-add-project-parameters'
@@ -25,6 +26,7 @@ const doStart = async({
   issues,
   issueTitle,
   noAutoAssign,
+  noOpenIssue = false,
   projects,
   reporter,
   req,
@@ -64,6 +66,7 @@ const doStart = async({
   const credDB = app.ext.credentialsDB
   const authToken = await credDB.getToken('GITHUB_API')
 
+  let issueURL
   if (issueTitle !== undefined) {
     const labels = []
     if (issueBug === true) {
@@ -93,8 +96,10 @@ ${issueNotes}`
 
     const projectFQN = ghOrg + '/' + projectBasename
 
-    const { number } = await createIssue({ authToken, projectFQN, title : issueTitle, body : issueBody, labels, reporter })
+    const { number, html_url: htmlURL } =
+      await createIssue({ authToken, projectFQN, title : issueTitle, body : issueBody, labels, reporter })
     issues.unshift(number + '')
+    issueURL = htmlURL
   }// if (createIssue)
 
   // Normalize issues as '<org>/<project>/<issue number>'
@@ -115,6 +120,11 @@ ${issueNotes}`
   const workData = await workDB.startWork({ app, issues, projects, reporter })
 
   reporter.push(`Started work '<em>${workData.description}<rst>'.`)
+
+  if (issueURL !== undefined && noOpenIssue !== true) {
+    reporter.push(`Opening issue at: ${issueURL}`)
+    await tryExecAsync(`open ${issueURL}`, { noThrow : true })
+  }
 
   httpSmartResponse({ data : workData, msg : reporter.taskReport.join('\n'), req, res })
 }
@@ -148,6 +158,11 @@ const getStartEndpointParams = () => {
     {
       name        : 'issueTitle',
       description : "Creates an issue with the given title. Requires 'issueOverview' and 'issueDeliverables' also be set."
+    },
+    {
+      name        : 'noOpenIssue',
+      isBoolean   : true,
+      description : "If true, supresses the default behavior of opening the newly created issue when 'issueTitle' and friends are set."
     },
     {
       name         : 'projects',
