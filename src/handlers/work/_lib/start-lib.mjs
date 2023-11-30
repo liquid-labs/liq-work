@@ -38,10 +38,7 @@ const doStart = async({
     throw createError.BadRequest("Must provides 'issues' or create an issue with 'issueTitle', etc.")
   }
 
-  if (issueTitle !== undefined && (issueDeliverables === undefined || issueOverview === undefined)) {
-    throw createError.BadRequest("Parameters 'issueOverview' and 'issueDeliverables' must be provided when 'issueTitle' is set.")
-  }
-  else if (issueTitle === undefined
+  if (issueTitle === undefined
     && (issueBug !== undefined || issueDeliverables !== undefined || issueOverview !== undefined || issueNotes !== undefined)) {
     throw createError.BadRequest("Parameters 'issueBug', 'issueOverview', 'issueDeliverables', and 'issueNotes' are only valid when 'issueTitle' is set.")
   }
@@ -79,12 +76,35 @@ const doStart = async({
     const deliverables = issueDeliverables.split(/(?:\n|;;)/)
     const deliverablesText = '- [ ] ' + deliverables.join('\n- [ ] ')
 
-    let issueBody = `## Overview
+    let issueBody = ''
+    // sections
+    [
+      ['Overview', issueOverview],
+      ['Deliverables', issueDeliverables],
+      ['Notes', issueNotes]
+    ].forEach(([sectionName, sectionContent], i, array) => {
+      if (sectionContent) {
+        issueBody += `## ${sectionName}
+
+${sectionContent}
+`
+        if (array[i + 1]?.[1] !== undefined) {
+          issueBody += "\n"
+        }
+      }
+    })
+
+    if (issueOverview !== undefined) {
+      issueBody += `## Overview
+
 ${issueOverview}
+`
+    if (issueDeliverables !== undefined) {
+      issueBody += `## Deliverables
 
-## Deliverables
-
-${deliverablesText}`
+${deliverablesText}
+`
+    }
 
     if (issueNotes !== undefined) {
       issueBody += `
