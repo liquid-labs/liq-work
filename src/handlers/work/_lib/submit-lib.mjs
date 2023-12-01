@@ -18,10 +18,23 @@ import { WorkDB } from './work-db'
 /**
  * Analyzes current state and if branch is clean and up-to-date, creates a PR or updates the existing PR. Will gather * answers for `work-submit-controls` if not included in the request.
  */
-const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey }) => {
-  reporter = reporter.isolate()
-  const { answers, dirtyOK, noPush = false, noQA = false } = req.vars
-
+const doSubmit = async({ 
+  // parameters
+  all, 
+  answers, 
+  dirtyOK,
+  noPush = false, 
+  noQA = false, 
+  projects,
+  workKey, // can be URL parameter or implied
+  // system
+  app, 
+  cache, 
+  noSend,
+  reporter, 
+  req, 
+  res
+ }) => {
   const workDB = new WorkDB({ app, reporter }) // doesn't need auth token
 
   let workUnit;
@@ -215,11 +228,9 @@ const doSubmit = async({ all, app, cache, projects, reporter, req, res, workKey 
     }
   }
 
-  httpSmartResponse({
-    msg : reporter.taskReport.join('\n'),
-    req,
-    res
-  })
+  if (noSend !== true) {
+    httpSmartResponse({ msg : reporter.taskReport.join('\n'), req, res })
+  }
 }
 
 const getSubmitEndpointParams = ({ alternateTo, descIntro }) => {

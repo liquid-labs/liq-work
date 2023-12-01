@@ -1,5 +1,6 @@
 import createError from 'http-errors'
 
+import { determineCurrentBranch } from '@liquid-labs/git-toolkit'
 import {
   claimIssues,
   createIssue,
@@ -13,11 +14,14 @@ import { tryExecAsync } from '@liquid-labs/shell-toolkit'
 
 import { commonAssignParameters } from './common-assign-parameters'
 import { commonAddProjectParameters } from './common-add-project-parameters'
+import { doSave } from './save-lib'
+import { doSubmit } from './submit-lib'
 import { WorkDB } from './work-db'
 
 const doStart = async({
   app,
   assignee,
+  cache,
   comment,
   issueBug,
   issueDeliverables,
@@ -30,7 +34,8 @@ const doStart = async({
   projects,
   reporter,
   req,
-  res
+  res,
+  submit
 }) => {
   reporter = reporter.isolate()
 
@@ -123,7 +128,39 @@ ${sectionContent}
 
   if (issueURL !== undefined && noOpenIssue !== true) {
     reporter.push(`Opening issue at: ${issueURL}`)
-    await tryExecAsync(`open ${issueURL}`, { noThrow : true })
+    tryExecAsync(`open ${issueURL}`, { noThrow : true })
+  }
+
+  if (submit === true) {
+    reporter.push('Saving project from start...')
+    // this will save all projects
+    await doSave({ 
+      // parameters
+      noSend: true, 
+      // for new issue v      v for existing issues
+      summary: issueTitle || workData.description, 
+      projects, 
+      // system
+      app, 
+      cache,
+      reporter, 
+      req, 
+      res 
+    })
+
+    for (const project of projects) {
+      console.log('project:', project) // DEBUG
+      const { projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(project)
+      console.log('projectPath:', projectPath) // DEBUG
+      const workKey = determineCurrentBranch({ projectPath, reporter })
+
+      reporter.push('Submitting project from start...')
+      // pick up the answers
+      console.log('setting X-Answer-Return-Command:', `work ${workKey} submit`) // DEBUG
+      res.set('X-Answer-Return-Command', `work ${workKey} submit`)
+      await doSubmit({ app, cache, noSend: true, projects, reporter, req, res, workKey, ...req.vars })
+      return
+    }
   }
 
   httpSmartResponse({ data : workData, msg : reporter.taskReport.join('\n'), req, res })
@@ -169,6 +206,11 @@ const getStartEndpointParams = () => {
       isMultivalue : true,
       description  : 'The project(s) to include in the new unit of work. If none are specified, then will guess the current implied project based on the client working directory.',
       optionsFunc  : async({ app }) => await app.ext._liqProjects.playgroundMonitor.listProjects()
+    },
+    {
+      name        : 'submit',
+      isBoolean   : true,
+      description : 'If true, immediately saves and submits the current work. This is useful for small changes already made. If the QA does not pass for any reason, it will halt the process after saving but before submission.'
     },
     ...commonAddProjectParameters(),
     ...commonAssignParameters()
