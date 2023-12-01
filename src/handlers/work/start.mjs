@@ -5,7 +5,7 @@ const { help, method, parameters } = getStartEndpointParams()
 const path = ['work', 'start']
 
 const func = ({ app, cache, reporter }) => async(req, res) => {
-  const {
+  const { // doing the var deconstruction heer is idiomatic; it is usually done in the lib
     assignee,
     comment,
     issueBug,
@@ -13,13 +13,15 @@ const func = ({ app, cache, reporter }) => async(req, res) => {
     issueNotes,
     issueOverview,
     issueTitle,
-    noAutoAssign = false
+    noAutoAssign = false,
+    submit = false
   } = req.vars
   const { issues = [], projects } = req.vars
 
   await doStart({
     app,
     assignee,
+    cache,
     comment,
     issueBug,
     issueDeliverables,
@@ -31,7 +33,8 @@ const func = ({ app, cache, reporter }) => async(req, res) => {
     projects,
     reporter,
     req,
-    res
+    res,
+    submit
   })
 }
 

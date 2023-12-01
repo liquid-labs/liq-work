@@ -21,7 +21,14 @@ import { WorkDB } from './work-db'
 const doSave = async({
   all,
   app,
+  backupOnly,
   cache,
+  description,
+  files,
+  noBackup = false,
+  noSend,
+  projects,
+  summary,
   workKey,
   reporter,
   req,
@@ -29,12 +36,10 @@ const doSave = async({
 }) => {
   reporter = reporter.isolate()
 
-  const { backupOnly = false, description, files, noBackup = false, projects, summary } = req.vars
-
   if (backupOnly !== true && summary === undefined) {
     throw createError.BadRequest("You must specify 'summary' when saving local changes (committing).")
   }
-  if (files !== undefined && projects !== undefined) {
+  if (files !== undefined && projects !== undefined && projects.length > 1) {
     throw createError.BadRequest("Parameters 'projecs' and 'files' are incompatible; please use one or the other.")
   }
 
@@ -45,21 +50,25 @@ const doSave = async({
   }
   else {
     await saveProjects({
+      // parameters
       all,
-      app,
       backupOnly,
-      cache,
       description,
       noBackup,
       projects,
-      reporter,
-      req,
       summary,
-      workKey
+      workKey,
+      // system
+      app,
+      cache,
+      reporter,
+      req
     })
   }
 
-  httpSmartResponse({ msg : reporter.taskReport.join('\n'), req, res })
+  if (noSend !== true) {
+    httpSmartResponse({ msg : reporter.taskReport.join('\n'), req, res })
+  }
 }
 
 const getSaveEndpointParams = ({ alternateTo, descIntro }) => {

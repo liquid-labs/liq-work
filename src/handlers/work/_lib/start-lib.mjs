@@ -1,5 +1,6 @@
 import createError from 'http-errors'
 
+import { determineCurrentBranch } from '@liquid-labs/git-toolkit'
 import {
   claimIssues,
   createIssue,
@@ -13,11 +14,14 @@ import { tryExecAsync } from '@liquid-labs/shell-toolkit'
 
 import { commonAssignParameters } from './common-assign-parameters'
 import { commonAddProjectParameters } from './common-add-project-parameters'
+import { doSave } from './save-lib'
+import { doSubmit } from './submit-lib'
 import { WorkDB } from './work-db'
 
 const doStart = async({
   app,
   assignee,
+  cache,
   comment,
   issueBug,
   issueDeliverables,
@@ -30,7 +34,8 @@ const doStart = async({
   projects,
   reporter,
   req,
-  res
+  res,
+  submit
 }) => {
   reporter = reporter.isolate()
 
@@ -54,6 +59,10 @@ const doStart = async({
     if (await app.ext._liqProjects.playgroundMonitor.getProjectData(project) === undefined) {
       throw createError.BadRequest(`No such local project '${project}'. Do you need to import it?`)
     }
+  }
+
+  if (submit === true && projects.length > 1) {
+    throw createError.BadRequest("Inline 'submit' only valid when submitting a single project.")
   }
 
   // technically, we dont't always need this, but we usually do; this is the data for the 'primary' project
@@ -123,7 +132,37 @@ ${sectionContent}
 
   if (issueURL !== undefined && noOpenIssue !== true) {
     reporter.push(`Opening issue at: ${issueURL}`)
-    await tryExecAsync(`open ${issueURL}`, { noThrow : true })
+    tryExecAsync(`open ${issueURL}`, { noThrow : true })
+  }
+
+  if (submit === true) {
+    reporter.push('Saving project from start...')
+    // this will save all projects
+    await doSave({
+      // parameters
+      noSend  : true,
+      // for new issue v      v for existing issues
+      summary : issueTitle || workData.description,
+      projects,
+      // system
+      app,
+      cache,
+      reporter,
+      req,
+      res
+    })
+
+    // there is always only one project when submitting; this is checked at the start
+    for (const project of projects) {
+      const { projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(project)
+      const workKey = determineCurrentBranch({ projectPath, reporter })
+
+      reporter.push('Submitting project from start...')
+      // pick up the answers
+      res.set('X-Answer-Return-Command', `work ${workKey} submit`)
+      await doSubmit({ app, cache, projects, reporter, req, res, workKey, ...req.vars })
+    }
+    return
   }
 
   httpSmartResponse({ data : workData, msg : reporter.taskReport.join('\n'), req, res })
@@ -169,6 +208,11 @@ const getStartEndpointParams = () => {
       isMultivalue : true,
       description  : 'The project(s) to include in the new unit of work. If none are specified, then will guess the current implied project based on the client working directory.',
       optionsFunc  : async({ app }) => await app.ext._liqProjects.playgroundMonitor.listProjects()
+    },
+    {
+      name        : 'submit',
+      isBoolean   : true,
+      description : 'If true, immediately saves and submits the current work. Only compatible when the work is associated with a single project. This is useful for small changes already made. If the QA does not pass for any reason, it will halt the process after saving but before submission.'
     },
     ...commonAddProjectParameters(),
     ...commonAssignParameters()
