@@ -21,7 +21,7 @@ const func = ({ app, cache, reporter }) => async(req, res) => {
 
   const workKey = determineCurrentBranch({ projectPath : cwd, reporter })
 
-  await doSubmit({ ...req.val, app, cache, reporter, req, res, workKey })
+  await doSubmit({ ...req.vars, app, cache, reporter, req, res, workKey })
 }
 
 export { func, help, parameters, path, method }
