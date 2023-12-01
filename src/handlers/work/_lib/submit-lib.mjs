@@ -18,23 +18,23 @@ import { WorkDB } from './work-db'
 /**
  * Analyzes current state and if branch is clean and up-to-date, creates a PR or updates the existing PR. Will gather * answers for `work-submit-controls` if not included in the request.
  */
-const doSubmit = async({ 
+const doSubmit = async({
   // parameters
-  all, 
-  answers, 
+  all,
+  answers,
   dirtyOK,
-  noPush = false, 
-  noQA = false, 
+  noPush = false,
+  noQA = false,
   projects,
   workKey, // can be URL parameter or implied
   // system
-  app, 
-  cache, 
+  app,
+  cache,
   noSend,
-  reporter, 
-  req, 
+  reporter,
+  req,
   res
- }) => {
+}) => {
   const workDB = new WorkDB({ app, reporter }) // doesn't need auth token
 
   let workUnit;

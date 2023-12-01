@@ -134,33 +134,30 @@ ${sectionContent}
   if (submit === true) {
     reporter.push('Saving project from start...')
     // this will save all projects
-    await doSave({ 
+    await doSave({
       // parameters
-      noSend: true, 
+      noSend  : true,
       // for new issue v      v for existing issues
-      summary: issueTitle || workData.description, 
-      projects, 
+      summary : issueTitle || workData.description,
+      projects,
       // system
-      app, 
+      app,
       cache,
-      reporter, 
-      req, 
-      res 
+      reporter,
+      req,
+      res
     })
 
     for (const project of projects) {
-      console.log('project:', project) // DEBUG
       const { projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(project)
-      console.log('projectPath:', projectPath) // DEBUG
       const workKey = determineCurrentBranch({ projectPath, reporter })
 
       reporter.push('Submitting project from start...')
       // pick up the answers
-      console.log('setting X-Answer-Return-Command:', `work ${workKey} submit`) // DEBUG
       res.set('X-Answer-Return-Command', `work ${workKey} submit`)
-      await doSubmit({ app, cache, noSend: true, projects, reporter, req, res, workKey, ...req.vars })
-      return
+      await doSubmit({ app, cache, noSend : true, projects, reporter, req, res, workKey, ...req.vars })
     }
+    return
   }
 
   httpSmartResponse({ data : workData, msg : reporter.taskReport.join('\n'), req, res })
