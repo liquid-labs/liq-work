@@ -61,6 +61,10 @@ const doStart = async({
     }
   }
 
+  if (submit === true && projects.length > 1) {
+    throw createError.BadRequest("Inline 'submit' only valid when submitting a single project.")
+  }
+
   // technically, we dont't always need this, but we usually do; this is the data for the 'primary' project
   const { packageJSON } = await app.ext._liqProjects.playgroundMonitor.getProjectData(projects[0])
   const { org: ghOrg, projectBasename } = getGitHubOrgAndProjectBasename({ packageJSON })
@@ -148,6 +152,7 @@ ${sectionContent}
       res
     })
 
+    // there is always only one project when submitting; this is checked at the start
     for (const project of projects) {
       const { projectPath } = await app.ext._liqProjects.playgroundMonitor.getProjectData(project)
       const workKey = determineCurrentBranch({ projectPath, reporter })
@@ -155,7 +160,7 @@ ${sectionContent}
       reporter.push('Submitting project from start...')
       // pick up the answers
       res.set('X-Answer-Return-Command', `work ${workKey} submit`)
-      await doSubmit({ app, cache, noSend : true, projects, reporter, req, res, workKey, ...req.vars })
+      await doSubmit({ app, cache, projects, reporter, req, res, workKey, ...req.vars })
     }
     return
   }
@@ -207,7 +212,7 @@ const getStartEndpointParams = () => {
     {
       name        : 'submit',
       isBoolean   : true,
-      description : 'If true, immediately saves and submits the current work. This is useful for small changes already made. If the QA does not pass for any reason, it will halt the process after saving but before submission.'
+      description : 'If true, immediately saves and submits the current work. Only compatible when the work is associated with a single project. This is useful for small changes already made. If the QA does not pass for any reason, it will halt the process after saving but before submission.'
     },
     ...commonAddProjectParameters(),
     ...commonAssignParameters()
