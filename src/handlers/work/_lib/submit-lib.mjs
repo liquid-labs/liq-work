@@ -165,7 +165,7 @@ const doSubmit = async({
   const answerData = JSON.parse(answers || '[]')
   for (const { name: projectFQN } of projects) {
     if (!answerData.some((a) => a.key === projectFQN)) {
-      throw createError.BadRequest(`Missing attestation results (qna answers) for project '${projectFQN}'.`)
+      throw createError.BadRequest(`Missing attestation results (qna answers) for project '${projectFQN}'. Possible resolutions: set package level controls (<pkg dir>/controls/work-submit.qcontrols.yaml), define org level controls, or specify 'package.json:_comply.orgKey' to point to an existing org.`)
     }
   }
 
